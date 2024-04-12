@@ -1,0 +1,346 @@
+; a lazy 2nd copy of these in case I want to do it for two sets of attributes
+copy_prepped_attributes2_to_vram:
+  STZ ATTRIBUTE2_DMA
+  LDA #$80
+  STA VMAIN
+  STZ DMAP6
+  LDA #$19
+  STA BBAD6
+  LDX ATTRIBUTE2_DMA + 1
+  LDA #$7E
+  STA A1B6
+  LDA ATTR2_DMA_SRC_HB,X
+  STA A1T6H
+  LDA ATTR2_DMA_SRC_LB,X
+  STA A1T6L
+  LDA ATTR2_DMA_SIZE_LB,X
+  CMP #$80
+  BMI handle_partials2
+  BRA handle_full2
+handle_partials2:
+  JSR copy_partial_prepped_attributes2_to_vram
+  BRA :+
+handle_full2: 
+  STA DAS6L
+  LDA ATTR2_DMA_SIZE_HB,X
+  STA DAS6H
+  LDA ATTR2_DMA_VMADDH,X
+  STA VMADDH
+  LDA ATTR2_DMA_VMADDL,X
+  STA VMADDL
+  LDA #$40
+  STA MDMAEN
+: DEC ATTRIBUTE2_DMA + 1
+  LDA ATTRIBUTE2_DMA + 1
+  BPL :-
+  LDY #$0F
+  LDA #$00
+: STA ATTRIBUTE2_DMA,Y
+  DEY
+  BPL :-
+  LDA #$FF
+  STA ATTRIBUTE2_DMA + 1
+  RTS
+
+copy_partial_prepped_attributes2_to_vram:
+
+; these are the same for all of them
+
+  LDA #$7E
+  STA A1B6
+
+partial_row_loop2:
+  LDA ATTR2_DMA_SIZE_LB, X
+  LSR
+  LSR
+  STA DAS6L
+  LDA #$00
+  STA DAS6H
+  LDA ATTR2_DMA_SRC_LB,X
+  CLC
+  ADC ATTR_PARTIAL_CURR_OFFSET
+  BCC :+
+  ; rollover, bump up HB
+  INC ATTR2_DMA_SRC_HB
+: STA A1T6L
+  
+  LDA ATTR2_DMA_SRC_HB,X
+  STA A1T6H  
+
+  LDA ATTR2_DMA_VMADDL,X
+  CLC
+  ADC ATTR_PARTIAL_CURR_OFFSET 
+  BCC :+
+  INC ATTR2_DMA_VMADDH, X
+: STA VMADDL
+
+  LDA ATTR2_DMA_VMADDH,X
+  STA VMADDH
+  
+  LDA #$40
+  STA MDMAEN
+
+  LDA ATTR_PARTIAL_CURR_OFFSET
+  ADC #$20
+  STA ATTR_PARTIAL_CURR_OFFSET
+  CMP #$80
+  BMI partial_row_loop2
+  STZ ATTR_PARTIAL_CURR_OFFSET
+early_rts_from_attribute2_copy:
+  RTS
+
+convert_attributes2_inf:
+  PHK
+  PLB
+  LDX #$00
+  JSR disable_attribute_hdma
+  LDA #.lobyte(ATTR2_NES_VM_ADDR_HB) ; #$A1
+  STA ATTR_WORK_BYTE_0
+  LDA #.hibyte(ATTR2_NES_VM_ADDR_HB) ; #$09
+  STA ATTR_WORK_BYTE_1
+  STZ ATTR2_DMA_SRC_LB
+  STZ ATTR2_DMA_SRC_LB + 1
+  LDA #.hibyte(ATTRIBUTE2_CACHE) ; #$19
+  STA ATTR2_DMA_SRC_HB
+  LDA #$1A
+  STA ATTR2_DMA_SRC_HB + 1
+  LDY #$00  
+
+inf2_9497:
+  LDA (ATTR_WORK_BYTE_0),Y ; $00.w is $09A1 to start
+  ; early rtl  
+  STZ ATTR2_NES_HAS_VALUES
+  BEQ early_rts_from_attribute2_copy
+  AND #$03
+  CMP #$03
+  BEQ :+
+  JMP inf2_9700
+: INY
+  LDA (ATTR_WORK_BYTE_0),Y
+  AND #$F0
+  CMP #$C0
+  BEQ :+
+  CMP #$D0
+  BEQ :+
+  CMP #$E0
+  BEQ :+
+  CMP #$F0
+  BEQ :+
+  JMP inf2_9700 + 1
+: JSR inc_attribute2_hdma_store_to_x
+
+  LDA (ATTR_WORK_BYTE_0),Y
+  PHY
+  AND #$0F
+  TAY
+  LDA attr_lookup_table_1_inf_9450,Y
+  PLY
+  ; AND #$0F
+  ; ASL A
+  ; ASL a
+  ; ASL a
+  ; ASL A
+  STA ATTR2_DMA_VMADDL,X
+  LDA (ATTR_WORK_BYTE_0),Y
+  AND #$30
+  LSR
+  LSR
+  LSR
+  LSR
+  ORA #$20
+  XBA
+  DEY
+  LDA (ATTR_WORK_BYTE_0),Y
+  CMP #$24
+  BMI :+
+  LDA #$00
+  XBA
+  INC
+  INC
+  INC
+  INC
+  STA ATTR2_DMA_VMADDH,X
+  BRA :++
+: LDA #$00
+  XBA
+  STA ATTR2_DMA_VMADDH,X
+: INY
+  INY
+  LDA (ATTR_WORK_BYTE_0),Y
+  AND #$3F
+  PHX
+  TAX
+  LDA attr_lookup_table_2_inf_95C0 + 15,X
+  PLX
+  STA ATTR2_DMA_SIZE_LB,X
+  LDA (ATTR_WORK_BYTE_0),Y
+  AND #$3F  
+  CMP #$0F
+  BPL :+
+  LDA #$00
+  BRA :++
+: PHX
+  TAX
+  LDA inf_95AE,X
+  PLX
+: STA ATTR2_DMA_SIZE_HB,X
+  ; LDA #$80
+  ; STA ATTR2_DMA_SIZE_LB
+  ; STZ ATTR2_DMA_SIZE_HB
+  LDA (ATTR_WORK_BYTE_0),Y
+  STA ATTRIBUTE2_DMA + 14
+  STA ATTRIBUTE2_DMA + 15
+  LDA ATTRIBUTE2_DMA + 2,X
+  sta ATTR_WORK_BYTE_3
+  LDA ATTRIBUTE2_DMA + 4,X
+  sta ATTR_WORK_BYTE_2
+  INY
+  INY
+  TYX
+  LDA #$A0
+  sta ATTR_WORK_BYTE_0
+  TYA
+  CLC
+  ADC ATTR_WORK_BYTE_0
+  sta ATTR_WORK_BYTE_0
+  BRA :+
+inf2_952D:  
+  INC ATTR_WORK_BYTE_0
+: JSR inf2_9680
+  NOP
+  LDA (ATTR_WORK_BYTE_0,X)
+  PHA
+  AND #$03
+  TAX
+  LDA attr_lookup_table_1_inf_9450,X
+  STA (ATTR_WORK_BYTE_2),Y
+  INY
+  STA (ATTR_WORK_BYTE_2),Y
+  LDY #$20
+  STA (ATTR_WORK_BYTE_2),Y
+  INY
+  STA (ATTR_WORK_BYTE_2),Y
+  LDY #$02
+  PLA
+  PHA
+  AND #$0C
+  STA (ATTR_WORK_BYTE_2),Y
+  INY
+  STA (ATTR_WORK_BYTE_2),Y
+  LDY #$22
+  STA (ATTR_WORK_BYTE_2),Y
+  INY
+  STA (ATTR_WORK_BYTE_2),Y
+  LDY #$40
+  PLA
+  PHA
+  AND #$30
+  LSR
+  LSR
+  LSR
+  LSR
+  TAX
+  LDA attr_lookup_table_1_inf_9450,X
+  STA (ATTR_WORK_BYTE_2),Y
+  INY
+  STA (ATTR_WORK_BYTE_2),Y
+  LDY #$60
+  STA (ATTR_WORK_BYTE_2),Y
+  INY
+  STA (ATTR_WORK_BYTE_2),Y
+  LDY #$42
+  PLA
+  AND #$C0
+  LSR
+  LSR
+  LSR
+  LSR
+  STA (ATTR_WORK_BYTE_2),Y
+  INY
+  STA (ATTR_WORK_BYTE_2),Y
+  LDY #$62
+  STA (ATTR_WORK_BYTE_2),Y
+  INY
+  STA (ATTR_WORK_BYTE_2),Y
+  LDA ATTR_WORK_BYTE_2
+  CLC
+  ADC #$04
+  sta ATTR_WORK_BYTE_2
+  CMP #$20
+  BEQ :+
+  CMP #$A0
+  BNE :++
+: CLC
+  ADC #$60
+  sta ATTR_WORK_BYTE_2
+  BNE :+
+  INC ATTR_WORK_BYTE_3
+: DEC ATTRIBUTE2_DMA + 14
+  LDA ATTRIBUTE2_DMA + 14
+  BEQ :+
+  BRA inf2_952D
+: JSR inf2_9690
+  NOP
+  LDA (ATTR_WORK_BYTE_0,X)
+  BNE inf2_95b9
+
+  STZ ATTR2_NES_HAS_VALUES
+  LDA #$FF
+  STA ATTRIBUTE2_DMA
+  RTS
+
+inf2_95b9:
+  ; i can't find this getting called, and 9720 looks non-sensical to me
+  JMP inf2_9720
+
+inc_attribute2_hdma_store_to_x:
+  INC ATTRIBUTE2_DMA + 1
+  LDX ATTRIBUTE2_DMA + 1
+  RTS
+
+inf2_9680:
+  LDA ATTR_WORK_BYTE_0
+  BNE :+
+  INC ATTR_WORK_BYTE_1
+: LDX #$00
+  LDY #$00
+  RTS
+
+
+inf2_9690:
+  LDA #$FF
+  STA ATTRIBUTE2_DMA
+  INC ATTR_WORK_BYTE_0
+  LDX #$00
+  RTS
+
+inf2_9700:
+  INY
+  INY
+  LDA ATTR_WORK_BYTE_2
+  PHA
+  STY ATTR_WORK_BYTE_2
+  LDA (ATTR_WORK_BYTE_0),Y
+  AND #$3F
+  CLC
+  ADC ATTR_WORK_BYTE_2
+  INC
+  TAY
+  PLA
+  sta ATTR_WORK_BYTE_2
+  JMP inf2_9497
+
+inf2_9720:
+  LDA ATTR_WORK_BYTE_2
+  PHA
+  STZ ATTR_WORK_BYTE_2
+: LDA ATTR_WORK_BYTE_0
+  CMP #$A1
+  BEQ :+
+  DEC ATTR_WORK_BYTE_0
+  INC ATTR_WORK_BYTE_2
+  BRA :-
+: LDY ATTR_WORK_BYTE_2
+  PLA
+  sta ATTR_WORK_BYTE_2
+  JMP inf2_9497
