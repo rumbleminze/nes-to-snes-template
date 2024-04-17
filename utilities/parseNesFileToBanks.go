@@ -49,8 +49,9 @@ func main() {
 
 		var bankFile, _ = os.Create(fmt.Sprintf("bank%d.asm", i))
 		defer bankFile.Close()
-
-		bankFile.WriteString(fmt.Sprintf(".segment \"PRGA%d\"", i+1))
+		if i != 7 {
+			bankFile.WriteString(fmt.Sprintf(".segment \"PRGA%d\"", i+1))
+		}
 		bankFile.WriteString(fmt.Sprintf("; Bank %d\n", i))
 		for byteIndex := 0; byteIndex < len(banks[i]); byteIndex++ {
 			if byteIndex <= 0x1FFFF {
@@ -70,10 +71,12 @@ func main() {
 				}
 			}
 		}
-		bankFile.WriteString(fmt.Sprintf(
-			".segment \"PRGA%dC\"\nfixeda%d:\n.include \"bank7.asm\"\nfixeda%d_end:",
-			i+1, i+1, i+1,
-		))
+		if i != 7 {
+			bankFile.WriteString(fmt.Sprintf(
+				".segment \"PRGA%dC\"\nfixeda%d:\n.include \"bank7.asm\"\nfixeda%d_end:",
+				i+1, i+1, i+1,
+			))
+		}
 	}
 	// CHR banks
 	tileset := 0
@@ -112,6 +115,8 @@ func main() {
 				),
 			)
 			bankFile.WriteString(".byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00\n")
+			// If some of the banks in the PRG rom are actually data banks, then we need to _not_ format them at 4bpp.
+			// for Double Dragon all of the banks are just tile data.
 			// } else {
 			// 	// these are data banks that need to be formatted differently
 			// 	bankFile.WriteString(

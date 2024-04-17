@@ -330,9 +330,9 @@ update_values_for_ppu_mask:
     LDA PPU_MASK_STATE
     AND #$06
     BNE :+
-    jslb enable_pause_window, $a0
+    jslb enable_hide_left_8_pixel_window, $a0
     BRA :++
-:   jslb disable_pause_window, $a0
+:   jslb disable_hide_left_8_pixel_window, $a0
 :   LDA PPU_MASK_STATE
     AND #$10
     CMP #$10

@@ -40,6 +40,7 @@
 
 .endmacro
 
+; jslb and jmlb are used to ensure our jsl and jml stay in the fastrom (a0-af) banks
 .macro jslb label, bank
 	.byte $22, <label, >label, bank
 .endmacro

@@ -20,16 +20,16 @@ setup_hide_left_8_pixel_window:
     STA W12SEL
     STA WOBJSEL
     
-    jslb disable_pause_window, $a0
+    jslb disable_hide_left_8_pixel_window, $a0
     rts
 
-enable_hide_left_8_pixe_window:
+enable_hide_left_8_pixel_window:
     LDA #%00000010
     STA W12SEL
 
     RTL
 
-disable_hide_left_8_pixe_window:
+disable_hide_left_8_pixel_window:
     LDA #$00
     STA W12SEL
     RTL

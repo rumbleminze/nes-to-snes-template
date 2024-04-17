@@ -201,8 +201,8 @@ intro_done:
   STA CGWSEL
   STZ CGADSUB
   
-  JSR setup_pause_window 
-  JSL disable_pause_window
+  JSR setup_hide_left_8_pixel_window
+  JSL disable_hide_left_8_pixel_window
   JSR clearvm_to_12
   JSR write_default_palettes
   JSR write_stack_adjustment_routine_to_ram
@@ -409,10 +409,11 @@ msu_movie_rti:
 dma_values:
   .byte $00, $12
 
-.if ENABLE_MSU == 1
+.if ENABLE_MSU = 1
   .include "msu_intro_screen.asm"
 .endif
-if ENABLE_MSU == 0
+
+.if ENABLE_MSU = 0
   .include "intro_screen.asm"
 .endif
   .include "konamicode.asm"

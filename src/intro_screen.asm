@@ -269,14 +269,26 @@ load_intro_tilesets:
     ; 20 is our custom intro screen tiles
     LDA #$20
     STA CHR_BANK_BANK_TO_LOAD
+    LDA #$01
+    STA CHR_BANK_TARGET_BANK
+    JSL load_chr_table_to_vm
+
+    LDA #$00
+    STA CHR_BANK_BANK_TO_LOAD
     LDA #$00
     STA CHR_BANK_TARGET_BANK
     JSL load_chr_table_to_vm
 
-    LDA #$20
-    STA CHR_BANK_BANK_TO_LOAD
     LDA #$01
+    STA CHR_BANK_BANK_TO_LOAD
+    LDA #$04
     STA CHR_BANK_TARGET_BANK
     JSL load_chr_table_to_vm
     
+    LDA #$02
+    STA CHR_BANK_BANK_TO_LOAD
+    LDA #$05
+    STA CHR_BANK_TARGET_BANK
+    JSL load_chr_table_to_vm
+
     rts
