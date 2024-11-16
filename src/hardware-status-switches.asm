@@ -113,12 +113,40 @@ set_sp_to_1bf_reload_ppucontrol:
   PHA
   RTL 
 
-update_ppu_control_from_fd_ff:
-  LDA BG_SCREEN_INDEX
+; updates the vmaddh based on what the current bank switch control range is
+; so that writes to NES 2400-27FF for instance, go to 2000-23FF instead
+vmaddh_range:
+.byte $20, $21, $22, $23, $20, $21, $22, $23, $24, $25, $26, $27, $24, $25, $26, $27
+
+store_vmaddh_to_proper_range:
+  PHA
+  LDA BANK_SWITCH_CTRL_REGS
   AND #$01
-  ORA PPU_CONTROL_STATE
-  jslb update_ppu_control_values_from_a, $a0
+  BEQ store_vmaddh_for_vertical_mirroring
+
+  PLA
+  CMP #$28
+  BMI :+
+  AND #$23
+  ORA #$04
+  BRA store
+
+: CMP #$24
+  BMI store
+  AND #$23
+
+store:
+  STA VMADDH
   RTL
+
+store_vmaddh_for_vertical_mirroring:
+  PLA
+  ; 20-23 = 20-23
+  ; 24-27 = 24-27
+  ; 28-2B = 20-23
+  ; 2C-2F = 24-27
+  AND #$27
+  BRA store
 
 prg_bank_swap_to_a:
   ; save off xya
@@ -154,6 +182,12 @@ prg_bank_swap_to_a:
   ; rtl, to the new bank
   RTL
 
+restore_ppu_control_from_a:
+  STA $FF
+  jslb update_ppu_control_values_from_a, $a0
+  RTL
+
+
 store_90_to_nmi_and_ppu_control_states:
   LDA #$90
   STA PPU_CONTROL_STATE
@@ -177,6 +211,36 @@ set_ppu_control_and_mask_to_0:
     AND #$7F
     STA NMITIMEN
 
+    RTL
+
+change_write_increment_based_on_carry_flag:
+    LDA PPU_CONTROL_STATE
+    AND #$FB
+    BCC :+
+    ORA #$04
+:   STA PPU_CONTROL_STATE
+    jsl update_ppu_control_values_from_a
+    rtl
+
+change_ppu_vblank_status:
+    STA PPU_CONTROL_STATE
+
+    ; for vblank we only care about the #$80 bit
+    ; so check if it set
+    ; then ORA it with our current stored status
+    AND #$80
+    BEQ :+
+    LDA RDNMI
+    LDA NMITIMEN_STATE
+    ORA #$80
+    BRA :++
+
+:   LDA NMITIMEN_STATE
+    AND #$7F
+    
+:   STA NMITIMEN_STATE
+    STA NMITIMEN
+    LDA PPU_CONTROL_STATE
     RTL
 
 update_ppu_control_values_from_a:
@@ -310,6 +374,42 @@ update_vh_write_by_0b:
 
   RTL
 
+disable_sprites_and_bg_and_store:
+    LDA PPU_MASK_STATE
+    AND #$e7
+    STA PPU_MASK_STATE
+    BRA update_values_for_ppu_mask
+
+enable_bg_and_store:
+    LDA PPU_MASK_STATE
+    ORA #$08
+    STA PPU_MASK_STATE
+    BRA update_values_for_ppu_mask
+
+enable_bg_and_sprites_and_store:    
+    LDA PPU_MASK_STATE
+    ORA #$18
+    STA PPU_MASK_STATE
+    BRA update_values_for_ppu_mask
+
+disable_sprites_and_store:
+    LDA PPU_MASK_STATE
+    AND #$EF
+    STA PPU_MASK_STATE
+    BRA update_values_for_ppu_mask
+
+enable_sprites_and_store:
+    LDA PPU_MASK_STATE
+    ORA #$10
+    STA PPU_MASK_STATE
+    BRA update_values_for_ppu_mask
+
+disable_bg_and_store:    
+    LDA PPU_MASK_STATE
+    ORA #$F7
+    STA PPU_MASK_STATE
+    BRA update_values_for_ppu_mask
+
 update_ppu_mask_to_00_store:
     LDA #$00
     STA PPU_MASK_STATE
@@ -326,22 +426,20 @@ update_ppu_mask_store_to_1e:
 
 update_values_for_ppu_mask:
     STZ TM_STATE
-    ; we only care about bits 10 (sprites and 08 bg)
+
     LDA PPU_MASK_STATE
     AND #$06
     BNE :+
-    jslb enable_hide_left_8_pixel_window, $a0
+    jslb hide_left_8_pixel_window, $a0
     BRA :++
-:   jslb disable_hide_left_8_pixel_window, $a0
+:   jslb show_left_8_pixel_window, $a0
 :   LDA PPU_MASK_STATE
     AND #$10
-    CMP #$10
-    BNE :+
+    BEQ:+
     STA TM_STATE
     : LDA PPU_MASK_STATE
     AND #$08
-    CMP #$08
-    BNE :+
+    BEQ :+
     LDA #$01
     ORA TM_STATE
     STA TM_STATE
@@ -369,10 +467,10 @@ enable_nmi_and_store:
     STA PPU_CONTROL_STATE
 
     ; not sure on this
-    LDA INIDISP_STATE
-    AND #$7F
-    STA INIDISP
-    STA INIDISP_STATE
+    ; LDA INIDISP_STATE
+    ; AND #$7F
+    ; STA INIDISP
+    ; STA INIDISP_STATE
 
     RTL
 
@@ -419,6 +517,11 @@ reset_nmi_and_inidisp_status:
     jslb reset_nmi_status, $a0
     jslb reset_inidisp, $a0
     RTL
+
+set_vram_increment_based_on_a_and_store:
+    AND #$04
+    BEQ set_vram_increment_to_1_and_store
+    BRA set_vram_increment_to_32_and_store
 
 set_vram_increment_to_1:
     LDA VMAIN_STATE
@@ -495,3 +598,18 @@ disable_nmi_and_fblank_no_store:
     jslb force_blank_no_store, $a0
     jslb disable_nmi_no_store, $a0
     RTL
+
+handle_mmc1_control_register:
+  LDA BANK_SWITCH_CTRL_REGS
+  AND #$03
+  CMP #$03
+  BNE :+
+  LDA #$22
+  BRA :++
+: LDA #$21  
+: STA BG1SC
+  STZ $3B
+  LDA PPU_CONTROL_STATE
+  jslb update_ppu_control_values_from_a, $a0
+  jslb set_scrolling_hdma_defaults, $a0
+  rtl

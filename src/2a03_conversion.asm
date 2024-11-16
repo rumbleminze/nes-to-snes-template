@@ -1,4 +1,159 @@
+totals_audio:
+
+SoundEmulateLengthCounters:
+    setAXY8
+    lda $0A15
+    ora #$04
+    tay
+
+    bit #$01
+    beq sq1
+
+    lda $0A00
+    and #$20
+    bne :++
+    ldx APUSq0Length
+    bne :+
+    tya
+    and #$fe
+    tay
+    bra sq1
+:
+    dex
+    stx APUSq0Length
+:
+    tya
+
+sq1:
+    bit #$02
+    beq noise
+
+    lda $0A04
+    and #$20
+    bne :++
+    ldx APUSq1Length
+    bne :+
+    tya
+    and #$fd
+    tay
+    bra sq1
+:
+    dex
+    stx APUSq1Length
+:
+    tya
+
+noise:
+    bit #$08
+    beq tri
+
+    lda $0A0c
+    and #$20
+    bne :++
+    ldx APUNoiLength
+    bne :+
+    tya
+    and #$f7
+    tay
+    bra sq1
+:
+    dex
+    stx APUNoiLength
+:
+    tya
+
+tri:
+    ldx $0A08
+    bpl :++
+
+    ldx APUTriLength
+    bne :+
+    and #$fb
+    bra end
+:
+    dex
+    stx APUTriLength
+:
+end:
+    sta $0A15
+    rts
+
+SnesUpdateAudio:
+    PHX
+    PHY
+    PHA
+    PHP
+    setAXY8
+
+    ; This isn't great but fixes some SFX
+    ; but makes the triangle channel never stop
+    ; LDA $A08
+    ; ORA #$80
+    ; STA $A08
+
+    JSR SoundEmulateLengthCounters
+
+    LDA $A15
+    BNE :++
+    ; Silence everything
+    LDX #$00
+:
+    STZ $A00, x
+    INX
+    CPX #$17
+    BNE :-
+:
+    LDA $2140
+    CMP #$7D
+    BEQ :+
+    JMP End
+:
+    
+    LDA #$D7
+    STA $2140
+
+:
+    LDA $2140
+    CMP #$D7
+    BNE :-
+
+    LDX #$00
+
+:
+    LDA $0A00, X
+    STA $2141
+    STX $2140
+
+    INX
+
+:   CPX $2141
+    BNE :-
+
+    CPX #$17
+    BNE :--
+
+    ; LDA #$0F
+    ; STA $A15
+
+    stz $0A16
+
+End:
+    PLP
+    PLA
+    PLY
+    PLX
+    RTL
+
+
+
+
+
+
+
 convert_audio:
+  jsl SnesUpdateAudio
+  rtl 
+
   PHX
   PHY
   JSR detect_changes
@@ -498,7 +653,8 @@ WaitSPC700Ready:
   lda #$D7
   sta APUIO0               ; tell SPC that CPU is ready
 WSPC700Reply:
-  cmp APUIO0               ; wait for reply
+  lda APUIO0               ; wait for reply
+  cmp #$D7
   bne WSPC700Reply
 
   ldx #0

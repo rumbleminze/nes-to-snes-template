@@ -20,21 +20,24 @@ augment_input:
     DEX
     BNE :-
 
+    ; example from Double Dragon
     ; we also ready the next bit, which is the SNES "A" button
     ; and if it's on, treat it as if they've hit both Y and B
-    lda JOYSER0
-    AND #$01
-    BEQ :+
-    LDA $00
-    ORA #$C0
-    STA $00
+    ; lda JOYSER0
+    ; AND #$01
+    ; BEQ :+
+    ; LDA $00
+    ; ORA #$C0
+    ; STA $00
 
     ; X
-    lda JOYSER0
-    lda JOYSER0
-    AND #$01
-    BEQ :+
+    ; lda JOYSER0
+    ; lda JOYSER0
+    ; AND #$01
+    ; BEQ :+
     
 
-:   jsr check_for_code_input_from_ram_values
+    ; this checks for the komani code by looking at where the game stores input.
+; :   jsr check_for_code_input_from_ram_values
+
     RTL

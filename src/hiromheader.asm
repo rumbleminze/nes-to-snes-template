@@ -1,6 +1,6 @@
 .segment "HEADER"
-      
-.byte "CHIP N DALE SNES V0.1" ; ROM name, must be 21 chars
+;      012345678901234567890
+.byte "GAME NAME GOES HERE  " ; ROM name, must be 21 chars
        
                 
 .segment "ROMSPEC"
