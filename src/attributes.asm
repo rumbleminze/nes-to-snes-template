@@ -82,7 +82,6 @@ copy_single_prepped_attribute:
   RTS
 
 copy_prepped_attributes_to_vram:
-  STZ ATTRIBUTE_DMA
   ; check for a single value
   LDA ATTR_DMA_SIZE_HB
   BNE :+
@@ -106,6 +105,7 @@ copy_prepped_attributes_to_vram:
   LDA ATTR_DMA_SRC_LB ; ,X
   STA A1T6L
   LDA ATTR_DMA_SIZE_LB ;,X
+  BEQ handle_full
   CMP #$80
   BMI handle_partials
   BRA handle_full
@@ -200,9 +200,9 @@ attr_lookup_table_2_inf_95C0:
 .byte $10, $20, $30, $40, $50, $60, $70, $80, $90, $A0, $B0, $C0, $D0, $E0, $F0, $00
 
 convert_nes_attributes_and_immediately_dma_them:
-  PHY
-  PHA
-  PHX
+  PHB
+  PHK
+  PLB
   LDA ATTR_WORK_BYTE_0
   PHA
   LDA ATTR_WORK_BYTE_1
@@ -211,9 +211,10 @@ convert_nes_attributes_and_immediately_dma_them:
   PHA
   LDA ATTR_WORK_BYTE_3 
   PHA
+
   JSR check_and_copy_nes_attributes_to_buffer
-  ; JSR check_and_copy_column_attributes_to_buffer
   JSR check_and_copy_attribute_buffer
+
   pla
   sta ATTR_WORK_BYTE_3
   pla
@@ -222,10 +223,8 @@ convert_nes_attributes_and_immediately_dma_them:
   sta ATTR_WORK_BYTE_1
   pla 
   sta ATTR_WORK_BYTE_0
-  PLX
-  PLA
-  PLY
-  RTL
+  PLB
+  rtl
 
 ; converts attributes stored at 9A0 - A07 to attribute cache
 check_and_copy_nes_attributes_to_buffer:
@@ -316,22 +315,31 @@ inf_9497:
 : INY
   INY
   LDA (ATTR_WORK_BYTE_0),Y
-  AND #$3F
-  PHX
-  TAX
-  LDA attr_lookup_table_2_inf_95C0 + 15,X
-  PLX
+  AND #$0F
+  ASL
+  ASL
+  ASL
+  ASL
+  ; PHX
+  ; TAX
+  ; LDA attr_lookup_table_2_inf_95C0 + 15,X
+  ; PLX  
   STA ATTR_DMA_SIZE_LB,X
   LDA (ATTR_WORK_BYTE_0),Y
-  AND #$3F  
+  AND #$F0  
   CMP #$0F
   BPL :+
   LDA #$00
   BRA :++
-: PHX
-  TAX
-  LDA inf_95AE,X
-  PLX
+: AND #$F0
+  LSR
+  LSR
+  LSR
+  LSR
+  ; PHX
+  ; TAX
+  ; LDA inf_95AE,X
+  ; PLX
 : STA ATTR_DMA_SIZE_HB,X
   ; LDA #$80
   ; STA ATTR_DMA_SIZE_LB
@@ -506,9 +514,6 @@ check_and_copy_column_attributes_to_buffer:
   LDA COL_ATTR_HAS_VALUES
   BEQ :+
   JSR convert_column_of_tiles
-: LDA COL2_ATTR_HAS_VALUES
-  BEQ :+
-  JSR convert_column2_of_tiles
 : RTS
 
 convert_column_of_tiles:
@@ -528,19 +533,11 @@ convert_column_of_tiles:
   BEQ :+
   RTS
 : 
-  ; LDA COL_ATTR_VM_LB
-  ; PHY
-  ; AND #$0F
-  ; TAY
-  ; LDA attr_lookup_table_1_inf_9450,Y
-  ; PLY
   LDA COL_ATTR_VM_LB
   AND #$0F
   ASL A
   ASL a
 
-  ; ASL a
-  ; ASL A  
   STA C1_ATTR_DMA_VMADDL
   LDA COL_ATTR_VM_HB
   AND #$24
@@ -697,157 +694,6 @@ dma_column_attributes:
 
   RTS
 
-; I'm very lazily copy/pasting this to support multiple column conversion.
-convert_column2_of_tiles:
-  LDA COL2_ATTR_VM_HB
-  ; early rtl
-  BNE :+
-  RTS
-: LDA COL2_ATTR_VM_LB
-  AND #$F0
-  CMP #$C0
-  BEQ :+
-  CMP #$D0
-  BEQ :+
-  CMP #$E0
-  BEQ :+
-  CMP #$F0
-  BEQ :+
-  RTS
-: 
-  LDA COL2_ATTR_VM_LB
-  AND #$0F
-  ASL A
-  ASL a
-
-  STA C2_ATTR_DMA_VMADDL
-  LDA COL2_ATTR_VM_HB
-  AND #$24
-  STA C2_ATTR_DMA_VMADDH
-
-  LDA #$20
-  STA C2_ATTR_DMA_SIZE_LB
-  STZ C2_ATTR_DMA_SIZE_HB
-
-  LDY #$00
-  LDX #$00
-: LDA COL2_ATTR_VM_START, Y
-  AND #$03
-  ASL
-  ASL
-  STA C2_ATTRIBUTE_CACHE, X
-  STA C2_ATTRIBUTE_CACHE + 1, X
-  ; store in UR and LR row
-  STA C2_ATTRIBUTE_CACHE + ATTR_WORK_BYTE_0, X
-  STA C2_ATTRIBUTE_CACHE + ATTR_WORK_BYTE_1, X
-
-  ; get B (TR), write them as dma lines 3 and 4.
-  LDA COL2_ATTR_VM_START, Y
-  CLC
-  AND #$0C
-  STA C2_ATTRIBUTE_CACHE + $40, X
-  STA C2_ATTRIBUTE_CACHE + $40 + 1, X
-  STA C2_ATTRIBUTE_CACHE + $60, X
-  STA C2_ATTRIBUTE_CACHE + $60 + 1, X
-
-  ; get C (BL)
-  LDA COL2_ATTR_VM_START, Y
-  CLC
-  AND #$30
-  LSR A
-  LSR A
-  STA C2_ATTRIBUTE_CACHE + 2, X
-  STA C2_ATTRIBUTE_CACHE + 3, X
-  STA C2_ATTRIBUTE_CACHE + ATTR_WORK_BYTE_2, X
-  STA C2_ATTRIBUTE_CACHE + ATTR_WORK_BYTE_3, X
-
-  ; get D (BR)
-  LDA COL2_ATTR_VM_START, Y
-  AND #$C0
-  LSR A
-  LSR A
-  LSR A
-  LSR A
-  STA C2_ATTRIBUTE_CACHE + $40 + 2, X
-  STA C2_ATTRIBUTE_CACHE + $40 + 3, X
-  STA C2_ATTRIBUTE_CACHE + $60 + 2, X
-  STA C2_ATTRIBUTE_CACHE + $60 + 3, X
-
-  INX
-  INX
-  INX
-  INX
-
-  INY
-  CPY #$08
-  BNE :-
-
-  INC COLUMN_2_DMA
-  STZ COL2_ATTR_HAS_VALUES
-  RTS
-
-dma_column2_attributes:
-  STZ COLUMN_2_DMA
-
-  ; write vertically for columns
-  LDA #$81
-  STA VMAIN
-
-  LDX #$04
-
-  LDA #.hibyte(C2_ATTRIBUTE_CACHE)
-  STA C2_ATTR_DMA_SRC_HB
-  LDA #.lobyte(C2_ATTRIBUTE_CACHE)
-  STA C2_ATTR_DMA_SRC_LB
-
-: STZ DMAP6
-
-  LDA #$19
-  STA BBAD6
-
-  LDA #$7E
-  STA A1B6
-
-  LDA C2_ATTR_DMA_SRC_HB
-  STA A1T6H
-  LDA C2_ATTR_DMA_SRC_LB
-  STA A1T6L
-
-  LDA C2_ATTR_DMA_SIZE_LB
-  STA DAS6L
-  LDA C2_ATTR_DMA_SIZE_HB
-  STA DAS6H
-
-  LDA C2_ATTR_DMA_VMADDH
-  STA VMADDH
-  LDA C2_ATTR_DMA_VMADDL
-  STA VMADDL
-
-  LDA #$40
-  STA MDMAEN
-
-  INC C2_ATTR_DMA_VMADDL
-  LDA C2_ATTR_DMA_SRC_LB
-  CLC
-  ADC #$20
-  STA C2_ATTR_DMA_SRC_LB
-  DEX
-  BNE :-
-
-  LDY #$0F
-  LDA #$00
-: STA COLUMN_2_DMA,Y
-  DEY
-  BPL :-
-  LDA #$FF
-  STA COLUMN_2_DMA + 1
-
-  LDA #$80
-  STA VMAIN
-
-  RTS
-
-
 ; X should contain VMADDH
 ; Y should contain VMADDL
 ; A should contain VMDATAL
@@ -898,3 +744,36 @@ write_one_off_vrams:
   RTS
 
 
+zero_all_attributes:
+  LDA #$80
+  STA VMAIN
+  STZ DMAP6
+  LDA #$19
+  STA BBAD6
+
+  LDA #$A0
+  STA A1B6
+
+  LDA #>zero_all_attributes_values
+  STA A1T6H
+
+  LDA #<zero_all_attributes_values
+  STA A1T6L
+
+  STZ DAS6L
+  LDA #$04
+  STA DAS6H
+  
+  LDA #$20
+  STA VMADDH
+  STZ VMADDL
+
+  LDA #$40
+  STA MDMAEN
+
+  LDA VMAIN_STATE
+  STA VMAIN
+  rtl
+  
+  zero_all_attributes_values:
+  .byte $00, $00

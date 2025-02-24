@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 export PATH=$PATH:../cc65-snapshot-win32/bin
-export GAME=BlasterMasterSNES
+export GAME=GAMENAME
 set -e
 
 cd "$(dirname "$0")"

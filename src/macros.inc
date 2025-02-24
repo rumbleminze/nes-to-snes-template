@@ -48,3 +48,12 @@
 .macro jmlb label, bank
 	.byte $5C, <label, >label, bank
 .endmacro
+
+.macro repeat value, count
+
+.if count > 0
+	.byte value	
+	repeat value, (count-1)
+.endif
+
+.endmacro
