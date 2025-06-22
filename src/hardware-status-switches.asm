@@ -6,7 +6,7 @@ sound_hijack_routine:
   PHK
   PLB
   JSR AUDIO_CODE_LOCATION
-  jslb convert_audio, $a0
+  jslb SnesUpdateAudio, $a0
   PLB
   PLP
   RTS
@@ -156,7 +156,13 @@ store_90_to_nmi_and_ppu_control_states:
 
 reset_ppu_control_values:
   LDA PPU_CONTROL_STATE
-  jslb update_ppu_control_from_a, $a0
+  BPL :+
+  PHA
+  LDA NMITIMEN_STATE
+  ORA #$80
+  STA NMITIMEN_STATE
+  PLA
+: jslb update_ppu_control_from_a, $a0 
   RTL
 
 set_ppu_control_and_mask_to_0:
@@ -182,7 +188,7 @@ update_ppu_control_from_a:
     ; 01 = 2400 = 1 H 0 V
     ; 10 = 2800 = 0 H 1 V
     ; 11 = 2C00 = 1 H 1 V
-
+    STA curr_ppu_ctrl_value
     PHA
     AND #$80
     CMP #$80
@@ -231,9 +237,9 @@ update_ppu_control_from_a:
 ret_from_update_ppu_control_from_a:
     ; LDA INIDISP_STATE
     ; STA INIDISP
-    LDA $F1
-    AND #$01
-    STA HOFS_HB
+    ; LDA $F1
+    ; AND #$01
+    ; STA HOFS_HB
     
     pla
     RTL
@@ -261,6 +267,13 @@ set_ppu_control_to_0_and_store:
 
     RTL
 
+update_stored_ppu_mask_value_to_1E:
+  LDA #$11
+  STA TM_STATE
+  LDA #$1E
+  STA PPU_MASK_STATE
+  rtl
+
 update_ppu_control_store_to_10:
     LDA #$10
     STA PPU_CONTROL_STATE
@@ -273,9 +286,8 @@ update_ppu_control_store_to_10:
     RTL
 
 set_ppu_mask_to_00:
-    ; STZ PPU_MASK_STATE
     STZ TM
-    jslb force_blank_and_store, $a0
+    jslb force_blank_no_store, $a0
     rtl
 
 set_ppu_mask_to_stored_value:
@@ -288,9 +300,12 @@ set_ppu_mask_to_stored_value:
 :   jslb force_blank_and_store, $a0
     RTL
 
+
 set_ppu_mask_to_accumulator_and_store:
 
     sta PPU_MASK_STATE
+
+set_ppu_mask_to_accumulator_without_store:
     CMP #$00
     BNE set_ppu_mask_to_accumulator
     STZ TM_STATE
@@ -314,6 +329,14 @@ set_ppu_mask_to_accumulator:
 :   LDA #$00    
 :    
     STA TM
+    beq :+
+        
+        LDA #$0F
+        STA INIDISP
+        pla
+        RTL
+    :
+
     PLA
     RTL
     
@@ -365,6 +388,7 @@ update_values_for_ppu_mask:
     LDA #$0F
     STA INIDISP
     RTL
+
 :   jslb force_blank_and_store, $a0
     RTL
 

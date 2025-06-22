@@ -1,13 +1,13 @@
 .segment "HEADER"
 ;      012345678901234567890
-.byte "GAME NAME GOES HERE  " ; ROM name, must be 21 chars
+.byte "LIFE FORCE SNES REV A" ; ROM name, must be 21 chars
        
                 
 .segment "ROMSPEC"
 .byte $31   ; Map Mode: 3.58MHz HiROM
 .byte $01   ; Cartridge Type: ROM+SRAM only
 .byte $0C   ; ROM Size
-.byte $03   ; RAM size
+.byte $00   ; RAM size
 .byte $01   ; Destination Code: USA
 .byte $01   ; Fixed value
 .byte $00   ; Mask ROM Version

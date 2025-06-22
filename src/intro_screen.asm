@@ -1,8 +1,20 @@
+.segment "PRGB1"
+
 intro_screen_data:
 .byte $e2, $20, $29, $28, $2b, $2d, $1e, $1d, $00                       ; Ported 
 .byte $1b, $32, $00                                                     ; by 
 .byte $2b, $2e, $26, $1b, $25, $1e, $26, $22, $27, $33, $1e, $00        ; Rumbleminze, 
-.byte $12, $10, $12, $14, $ff                                           ; 2024
+.byte $12, $10, $12, $15, $ff                                           ; 2025
+
+; always credit the people that help you
+; MSU1 Arrangements By Batty and Relikk
+; .byte $82, $22, $26, $2c, $2e, $11, $34
+; .byte $1a, $2b, $2b, $1a, $27, $20, $1e, $26, $1e, $27, $2d, $2c, $FF
+
+; .byte $A6, $22, $1b, $32, $34
+; .byte $1b, $1a, $2d, $2d, $32, $34
+; .byte $1A, $27, $1D, $34
+; .byte $2B, $1E, $25, $22, $24, $24,  $ff
 
 .byte $01, $23, $12, $1a, $10, $13, $00                                 ; 2A03
 .byte $2c, $28, $2e, $27, $1d, $00                                      ; SOUND 
@@ -10,7 +22,7 @@ intro_screen_data:
 .byte $1b, $32, $00                                                     ; BY
 .byte $26, $1e, $26, $1b, $25, $1e, $2b, $2c, $ff                       ; MEMBLERS
 
-.byte $78, $23, $2b, $1e, $2f, $10, $ff ; Version (REV0)
+.byte $78, $23, $2b, $1e, $2f, $1A, $ff ; Version (REV0)
 .byte $ff, $ff
 
 write_intro_palette:
@@ -160,7 +172,10 @@ exit_intro_write:
 do_intro:
     JSR load_intro_tilesets
     JSR write_intro_palette
-    JSR write_default_palettes
+    JSL write_default_palettes_jsl
+    
+    PHK
+    PLB
     JSR write_intro_tiles
     ; JSR write_intro_sprites
 
@@ -185,7 +200,14 @@ do_intro:
     STA INIDISP_STATE
     STA INIDISP
 
-:   RTS
+    
+
+:   
+    
+    LDA NMITIMEN_STATE
+    STA NMITIMEN
+    JSR show_options_screen
+    RTL
 check_for_sprite_swap:
 
     LDA JOYTRIGGER1
@@ -291,3 +313,7 @@ load_intro_tilesets:
     JSL load_chr_table_to_vm
 
     rts
+
+.include "options_screen.asm"
+.include "qol.asm"
+.include "konamicode.asm"

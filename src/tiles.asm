@@ -1,49 +1,8 @@
 ; This is used for bankswapping CHR Rom banks quickly by putting various banks
 ; at places in VRAM and changing where the BG tiles are loaded from
 bankswap_table:
-.byte .lobyte(chrom_bank_0_tileset_0),  .hibyte(chrom_bank_0_tileset_0), $A8
-.byte .lobyte(chrom_bank_0_tileset_1),  .hibyte(chrom_bank_0_tileset_1), $A8
-.byte .lobyte(chrom_bank_0_tileset_2),  .hibyte(chrom_bank_0_tileset_2), $A8
-.byte .lobyte(chrom_bank_0_tileset_3),  .hibyte(chrom_bank_0_tileset_3), $A8
-
-.byte .lobyte(chrom_bank_1_tileset_4),  .hibyte(chrom_bank_1_tileset_4), $A9
-.byte .lobyte(chrom_bank_1_tileset_5),  .hibyte(chrom_bank_1_tileset_5), $A9
-.byte .lobyte(chrom_bank_1_tileset_6),  .hibyte(chrom_bank_1_tileset_6), $A9
-.byte .lobyte(chrom_bank_1_tileset_7),  .hibyte(chrom_bank_1_tileset_7), $A9
-
-.byte .lobyte(chrom_bank_2_tileset_8),  .hibyte(chrom_bank_2_tileset_8), $AA
-.byte .lobyte(chrom_bank_2_tileset_9),  .hibyte(chrom_bank_2_tileset_9), $AA
-.byte .lobyte(chrom_bank_2_tileset_10), .hibyte(chrom_bank_2_tileset_10), $AA
-.byte .lobyte(chrom_bank_2_tileset_11), .hibyte(chrom_bank_2_tileset_11), $AA
-
-.byte .lobyte(chrom_bank_3_tileset_12), .hibyte(chrom_bank_3_tileset_12), $AB
-.byte .lobyte(chrom_bank_3_tileset_13), .hibyte(chrom_bank_3_tileset_13), $AB
-.byte .lobyte(chrom_bank_3_tileset_14), .hibyte(chrom_bank_3_tileset_14), $AB
-.byte .lobyte(chrom_bank_3_tileset_15), .hibyte(chrom_bank_3_tileset_15), $AB
-
-.byte .lobyte(chrom_bank_4_tileset_16), .hibyte(chrom_bank_4_tileset_16), $AC
-.byte .lobyte(chrom_bank_4_tileset_17), .hibyte(chrom_bank_4_tileset_17), $AC
-.byte .lobyte(chrom_bank_4_tileset_18), .hibyte(chrom_bank_4_tileset_18), $AC
-.byte .lobyte(chrom_bank_4_tileset_19), .hibyte(chrom_bank_4_tileset_19), $AC
-
-.byte .lobyte(chrom_bank_5_tileset_20), .hibyte(chrom_bank_5_tileset_20), $AD
-.byte .lobyte(chrom_bank_5_tileset_21), .hibyte(chrom_bank_5_tileset_21), $AD
-.byte .lobyte(chrom_bank_5_tileset_22), .hibyte(chrom_bank_5_tileset_22), $AD
-.byte .lobyte(chrom_bank_5_tileset_23), .hibyte(chrom_bank_5_tileset_23), $AD
-
-.byte .lobyte(chrom_bank_6_tileset_24), .hibyte(chrom_bank_6_tileset_24), $AE
-.byte .lobyte(chrom_bank_6_tileset_25), .hibyte(chrom_bank_6_tileset_25), $AE
-.byte .lobyte(chrom_bank_6_tileset_26), .hibyte(chrom_bank_6_tileset_26), $AE
-.byte .lobyte(chrom_bank_6_tileset_27), .hibyte(chrom_bank_6_tileset_27), $AE
-
-.byte .lobyte(chrom_bank_7_tileset_28), .hibyte(chrom_bank_7_tileset_28), $AF
-.byte .lobyte(chrom_bank_7_tileset_29), .hibyte(chrom_bank_7_tileset_29), $AF
-.byte .lobyte(chrom_bank_7_tileset_30), .hibyte(chrom_bank_7_tileset_30), $AF
-.byte .lobyte(chrom_bank_7_tileset_31), .hibyte(chrom_bank_7_tileset_31), $AF
-
 ; bank #$20, my basic intro tiles
 .byte <(basic_intro_tiles), >(basic_intro_tiles), $B0
-
 ; banks of msu tiles for the video
 .if ENABLE_MSU = 1
   .byte <(msu_intro_tiles_0), >(msu_intro_tiles_0), $B1
@@ -51,6 +10,200 @@ bankswap_table:
   .byte <(msu_intro_tiles_2), >(msu_intro_tiles_2), $B1
   .byte <(msu_intro_tiles_3), >(msu_intro_tiles_3), $B1
 .endif
+
+; .byte .lobyte(chrom_bank_0_tileset_0),  .hibyte(chrom_bank_0_tileset_0), $A8
+; .byte .lobyte(chrom_bank_0_tileset_1),  .hibyte(chrom_bank_0_tileset_1), $A8
+; .byte .lobyte(chrom_bank_0_tileset_2),  .hibyte(chrom_bank_0_tileset_2), $A8
+; .byte .lobyte(chrom_bank_0_tileset_3),  .hibyte(chrom_bank_0_tileset_3), $A8
+
+; .byte .lobyte(chrom_bank_1_tileset_4),  .hibyte(chrom_bank_1_tileset_4), $A9
+; .byte .lobyte(chrom_bank_1_tileset_5),  .hibyte(chrom_bank_1_tileset_5), $A9
+; .byte .lobyte(chrom_bank_1_tileset_6),  .hibyte(chrom_bank_1_tileset_6), $A9
+; .byte .lobyte(chrom_bank_1_tileset_7),  .hibyte(chrom_bank_1_tileset_7), $A9
+
+; .byte .lobyte(chrom_bank_2_tileset_8),  .hibyte(chrom_bank_2_tileset_8), $AA
+; .byte .lobyte(chrom_bank_2_tileset_9),  .hibyte(chrom_bank_2_tileset_9), $AA
+; .byte .lobyte(chrom_bank_2_tileset_10), .hibyte(chrom_bank_2_tileset_10), $AA
+; .byte .lobyte(chrom_bank_2_tileset_11), .hibyte(chrom_bank_2_tileset_11), $AA
+
+; .byte .lobyte(chrom_bank_3_tileset_12), .hibyte(chrom_bank_3_tileset_12), $AB
+; .byte .lobyte(chrom_bank_3_tileset_13), .hibyte(chrom_bank_3_tileset_13), $AB
+; .byte .lobyte(chrom_bank_3_tileset_14), .hibyte(chrom_bank_3_tileset_14), $AB
+; .byte .lobyte(chrom_bank_3_tileset_15), .hibyte(chrom_bank_3_tileset_15), $AB
+
+; .byte .lobyte(chrom_bank_4_tileset_16), .hibyte(chrom_bank_4_tileset_16), $AC
+; .byte .lobyte(chrom_bank_4_tileset_17), .hibyte(chrom_bank_4_tileset_17), $AC
+; .byte .lobyte(chrom_bank_4_tileset_18), .hibyte(chrom_bank_4_tileset_18), $AC
+; .byte .lobyte(chrom_bank_4_tileset_19), .hibyte(chrom_bank_4_tileset_19), $AC
+
+; .byte .lobyte(chrom_bank_5_tileset_20), .hibyte(chrom_bank_5_tileset_20), $AD
+; .byte .lobyte(chrom_bank_5_tileset_21), .hibyte(chrom_bank_5_tileset_21), $AD
+; .byte .lobyte(chrom_bank_5_tileset_22), .hibyte(chrom_bank_5_tileset_22), $AD
+; .byte .lobyte(chrom_bank_5_tileset_23), .hibyte(chrom_bank_5_tileset_23), $AD
+
+; .byte .lobyte(chrom_bank_6_tileset_24), .hibyte(chrom_bank_6_tileset_24), $AE
+; .byte .lobyte(chrom_bank_6_tileset_25), .hibyte(chrom_bank_6_tileset_25), $AE
+; .byte .lobyte(chrom_bank_6_tileset_26), .hibyte(chrom_bank_6_tileset_26), $AE
+; .byte .lobyte(chrom_bank_6_tileset_27), .hibyte(chrom_bank_6_tileset_27), $AE
+
+; .byte .lobyte(chrom_bank_7_tileset_28), .hibyte(chrom_bank_7_tileset_28), $AF
+; .byte .lobyte(chrom_bank_7_tileset_29), .hibyte(chrom_bank_7_tileset_29), $AF
+; .byte .lobyte(chrom_bank_7_tileset_30), .hibyte(chrom_bank_7_tileset_30), $AF
+; .byte .lobyte(chrom_bank_7_tileset_31), .hibyte(chrom_bank_7_tileset_31), $AF
+
+; rewrite of E6CA - need to keep db set to wherever we came from
+; track how many PPU bytes we've writen to the cache
+
+
+; use $10/$11 to point to VM cache write
+VM_CACHE_PTR = $10
+
+write_vm_cache:
+  ; assume VM addres is already set
+  LDX #$00
+  LDY #$08
+
+:
+  LDA VM_CACHE, Y
+  STA VMDATAH
+  LDA VM_CACHE, X
+  STA VMDATAL
+
+  INX
+  INY
+
+  CPY #$10
+  BNE :-
+
+  STZ VMDATAL
+  STZ VMDATAL
+  STZ VMDATAL
+  STZ VMDATAL
+  STZ VMDATAL
+  STZ VMDATAL
+  STZ VMDATAL
+  STZ VMDATAL
+
+  STZ VM_CACHE_PTR
+  RTS
+
+write_to_vm_cache:
+  PHX
+  PHY
+  PHA
+
+  LDY #$00
+  STA (VM_CACHE_PTR), Y
+  INC VM_CACHE_PTR
+
+  LDA VM_CACHE_PTR
+  CMP #$10
+  BNE :+
+    jsr write_vm_cache
+  :
+
+  PLA
+  PLY
+  PLX
+  RTS
+
+load_tileset_x:
+  LDA VM_CACHE_PTR
+  PHA
+  LDA VM_CACHE_PTR + 1
+  PHA
+
+  LDA #<VM_CACHE
+  STA VM_CACHE_PTR
+  LDA #>VM_CACHE
+  STA VM_CACHE_PTR + 1
+
+  LDA $E6EE,X
+  STA $00
+  LDA $E6EF,X
+  STA $01
+
+  ; JMP $F09E
+  JSR $E8C3
+  STA $21
+  STA $FC
+  STA $FD
+  LDA RDNMI
+
+  ; get the starting VM Address
+  LDY #$01
+  LDA ($00),Y
+  STA VMADDH ; PpuAddr_2006
+  DEY
+  LDA ($00),Y
+  STA VMADDL ; PpuAddr_2006
+
+  LDX #$00
+  LDA #$02  
+  JSR $EF37
+
+nes_F0BE:
+  LDY #$00
+  LDA ($00),Y
+
+  ; check for done
+  CMP #$FF
+  BEQ return_load_tileset_x
+
+  CMP #$7F
+  BEQ nes_F0FC
+  
+  ; not special control values (FF = done, 7F = ???)
+  TAY
+  BPL nes_F0EA
+
+  AND #$7F
+  STA $02
+  LDY #$01
+
+nes_F0D3:
+  LDA ($00),Y
+  jsr write_to_vm_cache ; STA PpuData_2007
+  CPY $02
+  BEQ nes_F0DF
+  INY
+  BNE nes_F0D3
+
+nes_F0DF:
+  LDA #$01
+  CLC
+  ADC $02
+
+nes_F0E4:
+  JSR $EF37
+  JMP nes_F0BE
+
+; positive values of rle
+nes_F0EA:
+  LDY #$01
+  STA $02
+  LDA ($00),Y
+  LDY $02
+: jsr write_to_vm_cache ; STA PpuData_2007
+  DEY
+  BNE :-
+  LDA #$02
+  BNE nes_F0E4
+
+nes_F0FC:
+  LDA #$01
+  JSR $EF37
+  JMP $F0A7
+  JMP $E893
+
+return_load_tileset_x:
+  PLA
+  STA VM_CACHE_PTR + 1
+  PLA
+  STA VM_CACHE_PTR
+  
+  RTL
+
 
 : RTL
 check_for_chr_bankswap:

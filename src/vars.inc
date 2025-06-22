@@ -1,18 +1,38 @@
 ; useful build modifications to build with or without things present in the rom
 .define DEBUG_MOD 1
 .define ENABLE_MSU 0
+.define OLD_2A03 1 ; 0 = use updated vers, 1 = use original
+
+; constants
+LINE_TO_START_HUD = 199
+NUM_SCANLINES = 240 ; overscan on
 
 ; These values are almost always used by NES game, but the values will be different
 ; for each game.  They will almost always be in the zero page, or close to it.
-VOFS_LB             = $FC   ; BG V Scroll position
-HOFS_LB             = $FD   ; BG H Scroll position
+HOFS_LB             = $FD   ; BG H Scroll position [x] updated
+VOFS_LB             = $FC   ; BG V Scroll position [x] updated
 
-PPU_CONTROL_STATE   = $FF   ; Current state of the PPU Control register
-PPU_MASK_STATE      = $FE   ; Current state of the PPU Mask register
-ACTIVE_NES_BANK     = $F0   ; Current bank loaded into the 8000-BFFF bank (for UNROM and MMC1)
+PPU_CONTROL_STATE   = $FF ;updated  ; Current state of the PPU Control register
+PPU_MASK_STATE      = $FE ;needs updating  ; Current state of the PPU Mask register
+ACTIVE_NES_BANK     = $08AE   ; Current bank loaded into the 8000-BFFF bank (for UNROM and MMC1)
 
 CURRENT_SPRITE_BANK = $D5
 CURRENT_BG_BANK     = $D6
+
+; NES RAM MAP Values
+P1_HEALTH = $041E
+P2_HEALTH = $041F
+ENEMY_1_HEALTH = $0420
+ENEMY_2_HEALTH = $0421
+CURR_AREA = $0422
+P1_LIVES = $0432
+P2_LIVES = $0433
+NUM_PLAYERS = $0434 ; 00 for 1 player, 01 for 2 players
+DIFFICULTY = $0435  ; 00 - 02
+; max level per difficulty
+; A794E4 - A794E6
+; Health to refill when loading level?
+; a7959B - a7959d
 
 ; SNES Register Value storage
 ; since SNES Registers don't line up with NES registers 1:1
@@ -24,11 +44,35 @@ CURRENT_BG_BANK     = $D6
 
 ; NES stores only the lb for h/v offset
 ; for SNES we also need to store the HB
-HOFS_HB             = $08A4
-VOFS_HB             = $08A5
 
+
+curr_ppu_ctrl_value     = $089F
+curr_hoff_low           = $08A0
+HOFS_HB                 = $08A1
+curr_voff_low           = $08A2
+VOFS_HB                 = $08A3
+lines_left_to_handle    = $08A4
+current_voff_offset     = $08A5
+
+PALETTE_HAS_BEEN_SET_TO_GREYSCALE = $083E
+PALETTE_NEEDS_UPDATING = $083F
+PALETTE_UPDATE_START = $0840
 PALETTE_ENTRY_CNT   = $08A6
 PALETTE_OFFSET      = $08A7
+PALETTE_FILTER = $083D
+
+; MSU_SELECTED        = $084C
+QOL_SETTINGS        = $084D
+
+; 0850 - 085F are used for options
+OPTIONS_START_ADDR   = $0860
+; which options are stored at which address
+OPTIONS_PALETTE         = OPTIONS_START_ADDR
+OPTIONS_LIVES           = OPTIONS_START_ADDR + 1
+OPTIONS_STARTING_LEVEL  = OPTIONS_START_ADDR + 2
+OPTIONS_MSU_SELECTED     = OPTIONS_START_ADDR + 3
+OPTIONS_MSU_PLAYLIST    = OPTIONS_START_ADDR + 4
+OPTIONS_DIFFICULTY    = OPTIONS_START_ADDR + 5
 
 REUSABLE_CALC_BYTE  = $08A8
 LEVEL_SELECT_INDEX  = $08A9
@@ -36,6 +80,7 @@ CHEATS_ENABLED      = $08AA
 APU_INITIALIZED     = $08AB
 NEED_TO_CLEAR_8x16_SPRITES = $08AC
 BANK_SWITCH_CTRL_REGS      = $08AD
+SCANLINE_FOR_IRQ             = $08AF
 CURRENT_ATTRIBUTES  = $08B0
 
 SPRITE_LOOP_JUNK    = $A0
@@ -49,13 +94,6 @@ STACK_ADJUSTMENT_ROUTINE_START = $0800
 STACK_ADJUSTMENT_RETURN_LO     = $90
 STACK_ADJUSTMENT_RETURN_HI     = $FE
 
-
-QOL_GUN_DECREASE_TIMER = $0840
-PALETTE_OPTION      = $084B
-MSU_SELECTED        = $084C
-QOL_SETTINGS        = $084D
-SAVE_ENABLED        = $084E
-HOVER_TICK          = $084F
 
 PPU_CURR_VRAM_ADDR  = $0992
 PPU_TILE_COUNT      = $0994
@@ -83,12 +121,18 @@ RESET_VECTOR_BS_DB = $096C
 
 ; HDMA for Scrolling, needs ~0x20 bytes
 SCROLL_HDMA_START      = $0900
-HDMA_LINE_CNT          = $0969
+SCROLL_HDMA_SAVED      = $0920
 
-; CHR_BANK_WORK
-CHR_BANK_LOADED_TABLE   = $0920
+; HDMA for scrolling normally handled by IRQ
+IRQ_SCROLL_HDMA_START  = $08E0
+SCROLL_HDMA_LINE_TO_START_OFFSET = $08E1
+SCROLL_HDMA_LINES_HANDLED = $08E2
+SCROLL_HDMA_NEXT_TO_HANDLE = $08E3  ; 0 = handle Attr next, 1 = handle irq next
 
 
+LINES_COMPLETE          = $0969
+
+CHR_BANK_LOADED_TABLE = $8F0
 OBJ_CHR_BANK_SWITCH = $0890
 BG_CHR_BANK_SWITCH  = $0891
 CHR_BANK_CURR_P1    = $0892
@@ -103,18 +147,23 @@ CHR_BANK_READ_LB        = $089A
 CHR_BANK_READ_HB        = $089B
 CHR_BANK_READ_DB        = $089C
 CURRENT_LVL_OBJ_LOAD= $089D
+CHR_BANK_SEGMENT_LOAD  = $089E
 
 FULL_ATTRIBUTE_QUARTER_COUNTER = $0930
 FAQ_OFFSET = $0931
 ATTR_NES_SIZE = $0932
 ATTR_NES_CURR_CALC_OFFSET = $0933
 ATTR_PARTIAL_CURR_OFFSET = $0934
+; 940 -947 - which enemy is on which sprite table
+SPRITE_LOADED_TABLE = $0940
+CURRENT_ENEMY_LOADED  = $094A
 
-STORED_OFFSETS_SET  = $0940
-UNPAUSE_BG1_VOFS_LB = $0941
-UNPAUSE_BG1_VOFS_HB = $0942
-UNPAUSE_BG1_HOFS_LB = $0943
-UNPAUSE_BG1_HOFS_HB = $0944
+CURRENT_ENEMY_TILE_OFFSET = $094B ; either $80 or $00, controls the HB of the tile
+CURRENT_SPRITE_TABLE_OFFSET = $094C ; either $00 or $01, $00 if we're the first table, $01 if we're the 2nd
+ENEMY_TO_LOAD = $094D
+CURRENT_ENEMY_SLOT = $094E
+ACTIVE_SPRITE_SECOND_BANK_SLOT = $094F
+
 
 .define TILE_CHUNK_COUNT   $0950
 .define TILE_DEST_LB_SETS  $0951
@@ -131,7 +180,6 @@ VRAM_UPDATE_DATA    = $0972
 EXTRA_VRAM_UPDATE   = $0980
 STACK_TEMP_STORAGE = $0981
 
-ATTRIBUTE_HOLDING   = $6600
 
 ATTR_VM_DATA_MAYBE_ATTR = $0990
 ATTR_PARAM_LB           = $0991
@@ -143,81 +191,86 @@ ATTR_NES_HAS_VALUES = $09A0
 ATTR_NES_VM_ADDR_HB = $09A1
 ATTR_NES_VM_ADDR_LB = $09A2
 ATTR_NES_VM_COUNT   = $09A3
-ATTR_NES_VM_ATTR_START = $09A4
+ATTR_NES_VM_ATTR_START = $09a4
 
+ATTR2_NES_HAS_VALUES = $09D0
+ATTR2_NES_VM_ADDR_HB = $09D1
+ATTR2_NES_VM_ADDR_LB = $09D2
+ATTR2_NES_VM_COUNT   = $09D3
+ATTR2_NES_VM_ATTR_START = $09d4
+
+; used for decompressing tiles
+VM_CACHE     = $0B00
 
 HUD_VOFFS_HDMA_TABLE    = $0F10
-HUD_HOFFS_HDMA_TABLE       = $0F00
-DMA_ENABLED_STATE    = $0EFF
-HDMA_ENABLED_STATE    = $0EFE
+HUD_HOFFS_HDMA_TABLE    = $0F00
+DMA_ENABLED_STATE       = $0EFF
+HDMA_ENABLED_STATE      = $0EFE
 
-ATTR2_NES_HAS_VALUES    = $12A0
-ATTR2_NES_VM_ADDR_HB    = $12A1
-ATTR2_NES_VM_ADDR_LB    = $12A2
-ATTR2_NES_VM_COUNT      = $12A3
-ATTR2_NES_VM_ATTR_START = $12A4
+; MSU Variables 1220 - 129F
+; 1220 - 123f - 0x20 track availability (does .pcm file exist on game start)
+; 1240 - 125f - 0x20 track enabled (do we want to use it)
+; 1260 - 126f - various msu variabes
+; 127f - 129f - currently unused
+TRACKS_AVAILABLE = $1220     ; Is MSU track present
+TRACKS_ENABLED = $1240       ; Is MSU track enabled
 
-SNES_OAM_TRANSLATE_NEEDED = $12F0
+.DEFINE CURRENT_NSF     $126F
+.DEFINE MSU_TRACK_IDX   $126E
+.DEFINE MSU_AVAILABLE   $126D
+.DEFINE MSU_PLAYING      $126C
+.DEFINE MSU_TRIGGER     $126B
+.DEFINE MSU_SELECTED     $126A
+
+.DEFINE MSU_CURR_VOLUME $1269
+.DEFINE MSU_CURR_CTRL   $1268
+
+; timers aren't used in this game, so we can reuse these
+.DEFINE MSU_TIMER_HB    $1267
+.DEFINE MSU_TIMER_LB    $1266
+.DEFINE MSU_TIMER_ON    $1265
+.DEFINE MSU_TIMER_INDX  $1264
+
+.DEFINE MSU_FADE_IN_PROGRESS $1267
+.DEFINE MSU_FADE_TO_TRACK    $1266
+.DEFINE MSU_CURR_FADE_VOLUME $1265
+
+
+
+
+.DEFINE SPRITE_TRANSLATION_UNREADY $1263
+.DEFINE MSU_SONG_PLAYING $1262
+
+SNES_OAM_TRANSLATE_NEEDED = $12E0
 SNES_OAM_START       = $1000
 
 SNES_OAM_SECOND_BLOCK = SNES_OAM_START + $100
 
-WRITING_PALETTE     = $17D0
+WHICH_ATTR_TO_USE_NEXT     = $17D0
 CURR_PALETTE_ADDR   = $17E0
+ATT1                = $17E2
+ATT2                = $17E3
+ATT3                = $17E4
+ATT4                = $17E5
 
-ATTRIBUTE_DMA       = $17F0
-ATTR_DMA_SRC_HB     = $17F2
-ATTR_DMA_SRC_LB     = $17F4
-ATTR_DMA_SIZE_LB    = $17F6
-ATTR_DMA_SIZE_HB    = $17F8
-ATTR_DMA_VMADDH     = $17FA
-ATTR_DMA_VMADDL     = $17FC
-ATTRIBUTE_CACHE     = $1800
+ATTRIBUTE_DMA       = $12F0
+ATTR_DMA_SRC_HB     = $12F2
+ATTR_DMA_SRC_LB     = $12F4
+ATTR_DMA_SIZE_LB    = $12F6
+ATTR_DMA_SIZE_HB    = $12F8
+ATTR_DMA_VMADDH     = $12FA
+ATTR_DMA_VMADDL     = $12FC
+ATTRIBUTE_CACHE     = $1300
 
-ATTRIBUTE2_DMA       = $17C0
-ATTR2_DMA_SRC_HB     = $17C2
-ATTR2_DMA_SRC_LB     = $17C4
-ATTR2_DMA_SIZE_LB    = $17C6
-ATTR2_DMA_SIZE_HB    = $17C8
-ATTR2_DMA_VMADDH     = $17CA
-ATTR2_DMA_VMADDL     = $17CC
-ATTRIBUTE2_CACHE     = $1900
+ATTRIBUTE2_DMA       = $12C0
+ATTR2_DMA_SRC_HB     = $12C2
+ATTR2_DMA_SRC_LB     = $12C4
+ATTR2_DMA_SIZE_LB    = $12C6
+ATTR2_DMA_SIZE_HB    = $12C8
+ATTR2_DMA_VMADDH     = $12CA
+ATTR2_DMA_VMADDL     = $12CC
+ATTRIBUTE2_CACHE     = $1500
 
-
-; this will store 8 values that contain the 8 attributes
-; each attribute value is used for 2 adjacent attribute pairs
-; and each pair is for 2 tiles, resulting in 32 values
-COL_ATTR_HAS_VALUES = $1C00
-COL_ATTR_VM_HB      = $1C01
-COL_ATTR_VM_LB      = $1C02
-COL_ATTR_VM_COUNT   = $1C03 ; will always be 8 but whatevs
-COL_ATTR_LB_SET     = $1C04
-COL_ATTR_VM_START   = $1C05
-
-COLUMN_1_DMA        = $1C10
-C1_ATTR_DMA_SRC_HB  = $1C12
-C1_ATTR_DMA_SRC_LB  = $1C14
-C1_ATTR_DMA_SIZE_LB = $1C16
-C1_ATTR_DMA_SIZE_HB = $1C18
-C1_ATTR_DMA_VMADDH  = $1C1A
-C1_ATTR_DMA_VMADDL  = $1C1C
-C1_ATTRIBUTE_CACHE  = $1C20
-
-; COL2_ATTR_HAS_VALUES = $1D00
-; COL2_ATTR_VM_HB      = $1D01
-; COL2_ATTR_VM_LB      = $1D02
-; COL2_ATTR_VM_COUNT   = $1D03 ; will always be 8 but whatevs
-; COL2_ATTR_LB_SET     = $1D04
-; COL2_ATTR_VM_START   = $1D05
-
-; COLUMN_2_DMA        = $1D10
-; C2_ATTR_DMA_SRC_HB  = $1D12
-; C2_ATTR_DMA_SRC_LB  = $1D14
-; C2_ATTR_DMA_SIZE_LB = $1D16
-; C2_ATTR_DMA_SIZE_HB = $1D18
-; C2_ATTR_DMA_VMADDH  = $1D1A
-; C2_ATTR_DMA_VMADDL  = $1D1C
-; C2_ATTRIBUTE_CACHE  = $1D20
 
 ATTR_WORK_BYTE_0 = $20
 ATTR_WORK_BYTE_1 = ATTR_WORK_BYTE_0 + 1

@@ -1,7 +1,12 @@
 #!/usr/bin/env sh
 export PATH=$PATH:../cc65-snapshot-win32/bin
-export GAME=GAMENAME
+export GAME=GameName
 set -e
+
+# Use generate_options_asm.go to create the options screen
+go run utilities/generate_options_asm.go
+mv options.bin ./src/options.bin
+mv options_macro_defs.asm ./src/options_macro_defs.asm
 
 cd "$(dirname "$0")"
 

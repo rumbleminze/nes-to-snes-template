@@ -1,23 +1,24 @@
 .p816
 .smart
 
+
 .include "macros.inc"
 .include "registers.inc"
 .include "vars.inc"
 .include "2a03_variables.inc"
-.include "2a03_emu_upload.asm"
-.include "hiromheader.asm"
+
+.if OLD_2A03 = 0
+    .include "wram_routines.asm"
+.else
+    .include "wram_routines_v0.asm"
+.endif
+
+.include "hiromheader.asm"  
 
 .segment "CODE"
 .include "resetvector.asm"
 
 .segment "EMPTY_SPACE"
-; there's two versions of the 2a03 emulator.  one lifted from Totals' quad randomizer
-; (which is itself lifted from project Nested) and an older one.  sometimes
-; the older one sounds better and sometimes the newer one does, try em both!
-; .include "2a03_emulator_first_8000.asm"
-.include "2a03_emulator_first_8000_total.asm"
-.include "2a03_emulator_second_8000.asm"
 
 .include "bank-snes.asm"
 ; these would need to be created from the original ROM using 
@@ -42,9 +43,13 @@
 ; these are tiles I use for intro/menu screens
 .include "chrom-basic-intro-tiles.asm"
 
+.include "msu.asm"
+; .include "chrom-tiles-msu-intro.asm"
+; .include "msu_video_player.asm"
+  .include "intro_screen.asm"
 
-.if ENABLE_MSU = 1
-    .include "msu.asm"
-    .include "chrom-tiles-msu-intro.asm"
-    .include "msu_video_player.asm"
+.if OLD_2A03 = 0
+    .include "dpcm_audio.asm"
+.else 
+    .include "2a03_emulator_first_8000.asm"
 .endif

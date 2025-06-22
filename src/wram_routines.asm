@@ -1,4 +1,5 @@
 .SEGMENT "WRAM_ROUTINES"
+
 ; APU Update routines
 routines_start:
 LoadSFXRegisters:
@@ -77,6 +78,10 @@ WriteAPUSq0Ctrl0_I_Y:
     sta   APUBase, y
     rts
 
+WriteAPUSq0Ctrl0_I_X:
+    sta   APUBase, x
+    rts
+
 WriteAPUSq0Ctrl0_Y:
     sty   APUBase
     rts
@@ -115,6 +120,20 @@ WriteAPUSq0Ctrl1_I_Y:
     sta APUBase+$01, y
     rts
 
+WriteAPUSq0Ctrl1_I_X:
+    cpx #$00
+    bne :+
+    jsr WriteAPUSq0Ctrl1
+    rts
+:
+    cpx #$04
+    bne :+
+    jsr WriteAPUSq1Ctrl1
+    rts
+:
+    sta APUBase+$01, x
+    rts
+
 WriteAPUSq0Ctrl2:
     sta APUBase+$02
     rts
@@ -126,6 +145,11 @@ WriteAPUSq0Ctrl2_X:
 WriteAPUSq0Ctrl2_I_Y:
     sta APUBase+$02, y
     rts
+
+WriteAPUSq0Ctrl2_I_X:
+    sta APUBase+$02, x
+    rts
+
 
 WriteAPUSq0Ctrl3:
     phx
@@ -164,6 +188,25 @@ WriteAPUSq0Ctrl3_I_Y:
     rts
 :
     cpy #$08
+    bne :+
+    jsr WriteAPUTriCtrl3
+    rts
+:
+    jsr WriteAPUNoiseCtrl3    
+    rts
+
+WriteAPUSq0Ctrl3_I_X:
+    cpx #$00
+    bne :+
+    jsr WriteAPUSq0Ctrl3
+    rts
+:
+    cpx #$04
+    bne :+
+    jsr WriteAPUSq1Ctrl3
+    rts
+:
+    cpx #$08
     bne :+
     jsr WriteAPUTriCtrl3
     rts
