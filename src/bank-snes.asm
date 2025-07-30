@@ -80,7 +80,7 @@ initialize_registers:
 
   ; STZ SETINI
   LDA #$00 
-  ; LDA #$01 ; uncomment this to use auto-joypoll
+  LDA #$01 ; comment this to not use auto-joypoll
   STA NMITIMEN
   STA NMITIMEN_STATE
   STZ VMAIN_STATE
@@ -137,7 +137,7 @@ initialize_registers:
   JSR zero_all_palette
 
   STA OBSEL
-  LDA #$11
+  LDA #$41
   STA BG12NBA
   LDA #$77
   STA BG34NBA
@@ -145,18 +145,22 @@ initialize_registers:
   STA BGMODE
   LDA #$21
   STA BG1SC
-;   LDA #$32
-;   STA BG2SC
+  LDA #$30
+  STA BG2SC
 ;   LDA #$28
 ;   STA BG3SC
 ;   LDA #$7C
 ;   STA BG4SC
   LDA #$80
   STA OAMADDH
+
   LDA #$11
   STA TMW
+
   LDA #$02
   STA W12SEL
+  
+  LDA #$08
   STA WOBJSEL
   
   lda #%00010001
@@ -165,7 +169,7 @@ initialize_registers:
   STA MEMSEL
 ; Use #$04 to enable overscan if we can.
   LDA #$04
-  LDA #$00
+  ; LDA #$00 ; uncomment to disable overscan
   STA SETINI
 
 
@@ -179,12 +183,12 @@ initialize_registers:
   STZ ATTRIBUTE2_DMA
   STZ ATTRIBUTE_DMA
   LDA #$00
-  ; LDA #$01 ; uncomment this to use auto-poll joypad
+  LDA #$01 ;  comment this to not use auto-poll joypad
   STA NMITIMEN_STATE
   
-  ; jsl spc_init_dpcm
+  jsl spc_init_dpcm
   jsl spc_init_driver
-  jsr write_sound_wram_routines
+  jsr write_wram_routines
   STZ MSU_SELECTED
   jslb check_if_msu_is_available, $b2
   LDA MSU_AVAILABLE
@@ -193,7 +197,12 @@ initialize_registers:
     STA MSU_SELECTED
     jslb check_for_all_tracks_present, $b2
   :
-  jslb do_intro, $b1
+
+  jslb do_intro, $b1  
+  jslb draw_msu_bg2, $b2
+  ; LDA #$00
+  LDA #$01 ; uncomment this to use auto-poll joypad
+  STA NMITIMEN_STATE
   
   PHK
   PLB
@@ -212,33 +221,31 @@ intro_done:
   JSR write_default_palettes
   LDA #$FF
   STA PALETTE_FILTER
+
   ; JSR write_stack_adjustment_routine_to_ram
   ; JSR write_sound_hijack_routine_to_ram
-  LDA #$03
+
+; the following will be game specific
+; this loads bank 0 as the active bank
+; and jumps to C008 in the NES space
+; it should jump to the reset vector of the game
+  LDA #$00
   STA ACTIVE_NES_BANK
 
-  LDA #$02
-  STA $4D
-
-  LDA #$A4
+  LDA #$A1
   PHA
   PLB 
-  JML $A4E70A
+  JML $A1C008
 
 
   snes_nmi:
     LDA RDNMI 
-
     ; jsr make_the_game_easier
-    ; jslb update_values_for_ppu_mask, $a0
     jslb infidelitys_scroll_handling, $a0
     jslb setup_hdma, $a0
-    ; jslb calculate_hdma_l, $a0
 
     JSR check_and_copy_nes_attributes_to_buffer
-    jsr check_for_palette_swap
-    
-    ; JSR dma_oam_table
+    jsr check_for_pause_changes
     RTL
 
 store_current_hdma_values:
@@ -262,10 +269,11 @@ store_current_hdma_values:
     STA DMAP3
 
     LDA #%00001000
-    jsr disable_sprites_under_hud
     STA HDMAEN
     rtl
 
+; example HMDA routine to turn off sprites while drawing a hud
+; this was used in LifeForce
 disable_sprites_under_hud:
 
   PHA
@@ -400,7 +408,7 @@ clearvm_to_12:
 : LDA RDNMI
   BPL :-
 
-  LDA #$00
+  LDA #$01
   STA NMITIMEN
   jslb force_blank_no_store, $a0 
   setAXY16
@@ -479,31 +487,71 @@ msu_movie_rti:
   PLP
   RTI
 
-check_for_palette_swap:
-  LDA $24 ; check that we're paused
-  BEQ :+
+check_for_pause_changes:
+  LDA $22 ; check that we're paused, this will need to be updated for every game.
+          ; Castlevania just set a bit in $22
 
-  LDA $F5
+  BEQ not_paused
+
+  LDA $F5   ; $F5 here is the P1 controller new presses variable
   AND #$20
-  BEQ :+
+  BEQ :++
 
-  STZ NMITIMEN
+    STZ NMITIMEN
 
-  jsr wait_for_vblank
+    jsr wait_for_vblank
 
-  INC OPTIONS_PALETTE
-  LDA OPTIONS_PALETTE
-  AND #$07
-  STA OPTIONS_PALETTE
-  LDA #$80
-  STA VMAIN
-  jslb write_palette_data, $a0
-  LDA VMAIN_STATE
-  STA VMAIN
-  LDA RDNMI
-  LDA NMITIMEN_STATE
-  STA NMITIMEN
-: rts
+    INC OPTIONS_PALETTE
+    LDA OPTIONS_PALETTE
+    CMP #14
+    BNE :+
+      LDA #$00
+    :
+    STA OPTIONS_PALETTE
+    LDA #$80
+    STA VMAIN
+    jslb write_palette_data, $a0
+    LDA VMAIN_STATE
+    STA VMAIN
+    LDA RDNMI
+    LDA NMITIMEN_STATE
+    STA NMITIMEN
+: 
+
+  ; check for track playlist change, which is L
+  LDA P1_SNES_BUTTONS_TRIGGER
+  AND #$20 ; L button
+  BEQ not_paused
+
+  LDA MSU_SELECTED
+  BEQ not_paused
+
+  INC OPTIONS_MSU_PLAYLIST
+
+  LDA OPTIONS_MSU_PLAYLIST
+  CMP #$06
+  BNE :+
+    ; jslb stop_msu_only, $b2
+    ; STZ MSU_SELECTED
+    ; BRA not_paused
+    STZ OPTIONS_MSU_PLAYLIST
+  : 
+  CMP #$07
+  BNE :+
+    STZ OPTIONS_MSU_PLAYLIST
+    ; LDA #$01
+    ; STA MSU_SELECTED
+  :
+
+  ; restart the msu playing with new playlist
+  LDA CURRENT_NSF
+  ; set to 0 so it will play the "new" track
+  STZ CURRENT_NSF
+  jslb play_track_hijack, $b2
+  ; just in case we zeroed it out
+  
+not_paused: 
+  rts
 
 wait_for_vblank:
   LDA RDNMI
@@ -511,14 +559,12 @@ wait_for_vblank:
   BEQ wait_for_vblank
   RTS
 
+; randome per game things to make it easier to test
+; like resetting life / lives / etc.
 make_the_game_easier:
 
-  LDA #$02
-  STA $76
-  LDA #99
-  STA $34
-  LDA #$02
-  STA $86
+  LDA #$40
+  STA $45
 
 
   rts 
@@ -538,14 +584,18 @@ dma_values:
   .byte $00, $12
 
   .include "scrolling.asm"
-  .include "input.asm"  
-  ; .include "konamicode.asm"
   .include "tiles.asm"
+  .include "rumble_controller.asm"
   .include "windows.asm"
   .include "hardware-status-switches.asm"
+  ; keep all rewritten routines in a game specific asm
+  ; and includee it here
+  ; .include "castlevania_rewrites.asm"
 
   .include "hdma_scroll_lookups.asm"
 
+; OLD_2A03 doesn't support brr samples, but might work ok.
+; the new one us uaully better.
 .if OLD_2A03 = 0
   .include "2a03_conversion.asm"
 .else
@@ -558,16 +608,24 @@ dma_values:
   .include "sprites.asm"
 
 
-write_sound_wram_routines:
+write_wram_routines:
 LDY #$00
 :
 LDA wram_routines, Y
-STA $1C00, Y
+STA $1800, Y
 LDA wram_routines + $100, Y
-STA $1D00, Y
+STA $1900, Y
 LDA wram_routines + $200, Y
-STA $1E00, Y
+STA $1A00, Y
 LDA wram_routines + $300, Y
+STA $1B00, Y
+LDA wram_routines + $400, Y
+STA $1C00, Y
+LDA wram_routines + $500, Y
+STA $1D00, Y
+LDA wram_routines + $600, Y
+STA $1E00, Y
+LDA wram_routines + $700, Y
 STA $1F00, Y
 
 INY
@@ -575,13 +633,4 @@ BNE :-
 RTS
 
 wram_routines:
-.if OLD_2A03 = 0
   .incbin "wram_routines.bin"
-.else
-  .incbin "wram_routines_v0.bin"
-.endif
-
-.segment "PRGA0C"
-fixeda0:
-.include "bank7.asm"
-fixeda0_end:

@@ -1,6 +1,6 @@
 .segment "HEADER"
 ;      012345678901234567890
-.byte "LIFE FORCE SNES REV A" ; ROM name, must be 21 chars
+.byte "GAMENAME GOES HERE V1" ; ROM name, must be 21 chars
        
                 
 .segment "ROMSPEC"

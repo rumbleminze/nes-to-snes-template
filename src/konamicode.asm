@@ -28,16 +28,10 @@ code_values:
 check_for_code_input:
 PHA
 readjoy:
-    lda #$01
-    STA JOYSER0
+    ; assumes auto-read joypad is on.
+
+    LDA JOY1H
     STA buttons
-    LSR A
-    sta JOYSER0
-loop:
-    lda JOYSER0
-    lsr a
-    rol buttons
-    bcc loop
 
     lda buttons
     ldy JOYPAD1

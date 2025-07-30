@@ -194,7 +194,7 @@ start:
         mov $F2,#$37
         mov $F3,#$5F
         mov $F2,#$47
-        mov $F3,#$1F
+        mov $F3,#$7F
 
         ;  Init triangle voice
         mov $F2,!TriangleSRCN            ; sample # for triangle
@@ -929,20 +929,20 @@ dmc_play:
 .selectPlaybackSpeed:
         mov a,pcm_freq
         cmp a,$4010+x
-        ; bcc .slowspeed        ;  If pcm_freq < threshold value in a, slow speed
+        bcc .slowspeed        ;  If pcm_freq < threshold value in a, slow speed
 
 .normalspeed:                 ;  Otherwise, normal speed
 
         mov $F2,!DmcPitchL
-        mov $F3,#$00
+        mov $F3,#$5C
         mov $F2,!DmcPitchH
-        mov $F3,#$18
+        mov $F3,#$08
         jmp .selectPlaybackVolume
 .slowspeed:                     
         mov $F2,!DmcPitchL
-        mov $F3,#$45
+        mov $F3,#$70
         mov $F2,!DmcPitchH
-        mov $F3,#$08
+        mov $F3,#$05
 
 .selectPlaybackVolume:
         mov a,dmc_attenuation_cutoff

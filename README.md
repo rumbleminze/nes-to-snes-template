@@ -4,6 +4,7 @@ A template and (hopefully) useful routines for porting NES games to the SNES
 ## Prerequisites
 
 * [cc65](https://www.cc65.org/) - the 65c816 compiler and linker
+* [go](https://go.dev/) - Go, used for various scripts
 
 
 ## Other Userful Tools I've used for this project
@@ -30,6 +31,8 @@ A template and (hopefully) useful routines for porting NES games to the SNES
 * `vars.inc`, `registers.inc`, `macros.inc` - helpful includes
 * `resetvector.asm` - the reset vector code
 * `hirom.cfg` - defines how our ROM is laid out, where each bank lives and how large they are
+* `src/spc/` - the code for the 2a03 sound emulator that is uploaded to the SPC
+* `utilties/` - various go scripts that are used to generate parts of the code
 
 ## Building
 

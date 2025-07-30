@@ -1,116 +1,5 @@
 .define AUDIO_CODE_LOCATION $8000
 
-sound_hijack_routine:
-  PHP
-  PHB
-  PHK
-  PLB
-  JSR AUDIO_CODE_LOCATION
-  jslb SnesUpdateAudio, $a0
-  PLB
-  PLP
-  RTS
-sound_hijack_routine_end:
-
-write_sound_hijack_routine_to_ram:
-  LDY #$00
-: LDA sound_hijack_routine, y
-  STA SOUND_HIJACK_ROUTINE_START, Y
-  INY
-  CPY #(sound_hijack_routine_end - sound_hijack_routine)
-  BNE :-
-  RTS  
-
-; 17 bytes of code
-stack_adjustment_routine:
-  setAXY16          ; 2
-  LDX #$01FF        ; 3
-  TXS               ; 1
-  setAXY8           ; 2
-  PHB               ; 1
-  PLA               ; 1
-  STA STACK_ADJUSTMENT_ROUTINE_START + 16         ; 3
-  ; JML back to where we came from
-  .byte $5C, STACK_ADJUSTMENT_RETURN_LO, STACK_ADJUSTMENT_RETURN_HI, $A0
-stack_adjustment_routine_end:
-
-write_stack_adjustment_routine_to_ram:
-  LDY #$00
-: LDA stack_adjustment_routine, y
-  STA STACK_ADJUSTMENT_ROUTINE_START, Y
-  INY
-  CPY #(stack_adjustment_routine_end - stack_adjustment_routine)
-  BNE :-
-  RTS
-
-set_stack_pointer_to_01:
-  PLA
-  STA STACK_RETURN_LB
-  PLA
-  STA STACK_RETURN_HB
-  PLA
-  STA STACK_RETURN_DB
-  LDA $01
-
-  setAXY16
-  ORA #$0100
-  TAX
-  TXS
-  setAXY8
-
-  LDA STACK_RETURN_DB
-  PHA
-  LDA STACK_RETURN_HB
-  PHA
-  LDA STACK_RETURN_LB
-  PHA
-  RTL
-
-reset_sp_to_01ff:
-  
-  PLA
-  STA STACK_RETURN_LB
-  PLA
-  STA STACK_RETURN_HB
-  PLA
-  STA STACK_RETURN_DB
-
-  setAXY16
-  LDX #$01FF
-  TXS
-  setAXY8
-
-  LDA STACK_RETURN_DB
-  PHA
-  LDA STACK_RETURN_HB
-  PHA
-  LDA STACK_RETURN_LB
-  PHA
-  RTL
-
-set_sp_to_1bf_reload_ppucontrol:
-  PLA
-  STA STACK_RETURN_LB
-  PLA
-  STA STACK_RETURN_HB
-  PLA
-  STA STACK_RETURN_DB   
-
-  setXY16
-  LDX #$01BF
-  TXS
-  setAXY8
-
-  jslb reset_ppu_control_values, $a0
-
-  LDA STACK_RETURN_DB
-  PHA
-  LDA STACK_RETURN_HB
-  PHA
-  LDA STACK_RETURN_LB
-  PHA
-  RTL 
-
 prg_bank_swap_to_a:
   ; save off xya
   STX BANK_SWITCH_X
@@ -174,6 +63,10 @@ set_ppu_control_and_mask_to_0:
     AND #$7F
     STA NMITIMEN
 
+    LDA INIDISP_STATE
+    ORA #$80
+    STA INIDISP
+
     RTL
 
 update_ppu_control_from_a:
@@ -205,8 +98,40 @@ update_ppu_control_from_a:
     jslb set_vram_increment_to_32_no_store, $a0
     bra :++
 :   jslb set_vram_increment_to_1, $a0
+:   bra update_offs_values  
 
-:   STZ HOFS_HB
+update_ppu_control_from_a_store:
+    ; we only care about a few values for ppu control
+    ; these bits Nxxx xIAA
+    ; N = NMI enabled
+    ; I = Increment mode 0 = H, 1 = V
+    ; AA = Base Nametable
+    ;   this controls which quadrant of the TileMap the NES shows
+    ;   for us this controls what the HB of the the H/V Offset should be
+    ; 00 = 2000 = 0 H 0 V
+    ; 01 = 2400 = 1 H 0 V
+    ; 10 = 2800 = 0 H 1 V
+    ; 11 = 2C00 = 1 H 1 V
+    STA curr_ppu_ctrl_value
+    PHA
+    AND #$80
+    CMP #$80
+    BNE :+
+    jslb enable_nmi_and_store, $a0
+    bra :++
+:   jslb disable_nmi_and_store, $a0
+
+:   PLA
+    PHA
+    AND #$04
+    CMP #$04
+    BNE :+
+    jslb set_vram_increment_to_32_and_store, $a0
+    bra update_offs_values
+:   jslb set_vram_increment_to_1_and_store, $a0
+
+update_offs_values:
+    STZ HOFS_HB
     STZ VOFS_HB
     PLA
     pha
@@ -246,7 +171,8 @@ ret_from_update_ppu_control_from_a:
 
 update_ppu_control_from_a_and_store:
     STA PPU_CONTROL_STATE
-    jslb update_ppu_control_from_a, $a0
+    jslb update_ppu_control_from_a_store, $a0
+
     rtl
 
 set_ppu_control_to_0_and_store:
@@ -404,14 +330,6 @@ enable_nmi_and_store:
     ORA #$80
     STA PPU_CONTROL_STATE
 
-    ; not sure on this
-    LDA PPU_MASK_STATE
-    BEQ :+
-    LDA INIDISP_STATE
-    AND #$7F
-    STA INIDISP
-    STA INIDISP_STATE
-    :
     RTL
 
 enable_nmi:

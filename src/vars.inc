@@ -1,10 +1,10 @@
 ; useful build modifications to build with or without things present in the rom
 .define DEBUG_MOD 1
 .define ENABLE_MSU 0
-.define OLD_2A03 1 ; 0 = use updated vers, 1 = use original
+.define OLD_2A03 0 ; 0 = use updated vers, 1 = use original
 
 ; constants
-LINE_TO_START_HUD = 199
+LINE_TO_START_HUD = 47
 NUM_SCANLINES = 240 ; overscan on
 
 ; These values are almost always used by NES game, but the values will be different
@@ -12,27 +12,16 @@ NUM_SCANLINES = 240 ; overscan on
 HOFS_LB             = $FD   ; BG H Scroll position [x] updated
 VOFS_LB             = $FC   ; BG V Scroll position [x] updated
 
-PPU_CONTROL_STATE   = $FF ;updated  ; Current state of the PPU Control register
-PPU_MASK_STATE      = $FE ;needs updating  ; Current state of the PPU Mask register
-ACTIVE_NES_BANK     = $08AE   ; Current bank loaded into the 8000-BFFF bank (for UNROM and MMC1)
+PPU_CONTROL_STATE   = $FF   ; Current state of the PPU Control register [x] updated
+PPU_MASK_STATE      = $FE   ;needs updating  ; Current state of the PPU Mask register
+ACTIVE_NES_BANK     = $24   ; Current bank loaded into the 8000-BFFF bank (for UNROM and MMC1)
+PREV_NES_BANK       = $27
 
 CURRENT_SPRITE_BANK = $D5
 CURRENT_BG_BANK     = $D6
 
 ; NES RAM MAP Values
-P1_HEALTH = $041E
-P2_HEALTH = $041F
-ENEMY_1_HEALTH = $0420
-ENEMY_2_HEALTH = $0421
-CURR_AREA = $0422
-P1_LIVES = $0432
-P2_LIVES = $0433
-NUM_PLAYERS = $0434 ; 00 for 1 player, 01 for 2 players
-DIFFICULTY = $0435  ; 00 - 02
-; max level per difficulty
-; A794E4 - A794E6
-; Health to refill when loading level?
-; a7959B - a7959d
+
 
 ; SNES Register Value storage
 ; since SNES Registers don't line up with NES registers 1:1
@@ -53,12 +42,12 @@ curr_voff_low           = $08A2
 VOFS_HB                 = $08A3
 lines_left_to_handle    = $08A4
 current_voff_offset     = $08A5
+PALETTE_ENTRY_CNT   = $08A6
+PALETTE_OFFSET      = $08A7
 
 PALETTE_HAS_BEEN_SET_TO_GREYSCALE = $083E
 PALETTE_NEEDS_UPDATING = $083F
 PALETTE_UPDATE_START = $0840
-PALETTE_ENTRY_CNT   = $08A6
-PALETTE_OFFSET      = $08A7
 PALETTE_FILTER = $083D
 
 ; MSU_SELECTED        = $084C
@@ -67,12 +56,15 @@ QOL_SETTINGS        = $084D
 ; 0850 - 085F are used for options
 OPTIONS_START_ADDR   = $0860
 ; which options are stored at which address
+; these should be updated for whatever options are implemented
 OPTIONS_PALETTE         = OPTIONS_START_ADDR
-OPTIONS_LIVES           = OPTIONS_START_ADDR + 1
-OPTIONS_STARTING_LEVEL  = OPTIONS_START_ADDR + 2
-OPTIONS_MSU_SELECTED     = OPTIONS_START_ADDR + 3
-OPTIONS_MSU_PLAYLIST    = OPTIONS_START_ADDR + 4
-OPTIONS_DIFFICULTY    = OPTIONS_START_ADDR + 5
+OPTIONS_DIFFICULTY           = OPTIONS_START_ADDR + 1
+OPTIONS_LOOP            = OPTIONS_START_ADDR + 2
+OPTIONS_SUB_WEAPON_SWAP = OPTIONS_START_ADDR + 3
+OPTIONS_MSU_SELECTED     = OPTIONS_START_ADDR + 4
+OPTIONS_MSU_PLAYLIST    = OPTIONS_START_ADDR + 5
+OPTIONS_DISABLE_RUMBLE  = OPTIONS_START_ADDR + 6
+OPTIONS_CONTROLS        = OPTIONS_START_ADDR + 7
 
 REUSABLE_CALC_BYTE  = $08A8
 LEVEL_SELECT_INDEX  = $08A9
@@ -80,6 +72,7 @@ CHEATS_ENABLED      = $08AA
 APU_INITIALIZED     = $08AB
 NEED_TO_CLEAR_8x16_SPRITES = $08AC
 BANK_SWITCH_CTRL_REGS      = $08AD
+W12SEL_STATE                = $08AE
 SCANLINE_FOR_IRQ             = $08AF
 CURRENT_ATTRIBUTES  = $08B0
 
@@ -88,6 +81,23 @@ SPRITE_LOOP_JUNK    = $A0
 FULL_ATTRIBUTE_COPY_SRC_LB = $AD
 FULL_ATTRIBUTE_COPY_SRC_HB = $AE
 FULL_ATTRIBUTE_COPY_HB = $AF
+
+
+OTHER_SUB_WEAPON_HELD = $0800
+P1_SNES_BUTTONS = $0801
+P2_SNES_BUTTONS = $0802
+P1_SNES_BUTTONS_TRIGGER = $0803
+P2_SNES_BUTTONS_TRIGGER = $0804
+P1_SNES_BUTTONS_HELD = $0805
+P2_SNES_BUTTONS_HELD = $0806
+
+RUMBLE_P1 = $080A
+RUMBLE_WAVE_FORM_PLAYING = $080B
+RUMBLE_WAVE_FORM_IDX = $080C
+RUMBLE_WAVE_FORM_CTR = $080D
+
+CURRENT_SUB_WEAPON = $015B
+CURRENT_SUB_WEAPON_MULT = $64
 
 SOUND_HIJACK_ROUTINE_START     = $0830
 STACK_ADJUSTMENT_ROUTINE_START = $0800
@@ -230,10 +240,13 @@ TRACKS_ENABLED = $1240       ; Is MSU track enabled
 .DEFINE MSU_TIMER_LB    $1266
 .DEFINE MSU_TIMER_ON    $1265
 .DEFINE MSU_TIMER_INDX  $1264
+.DEFINE MSU_TEMP_MUTED $1263
+.DEFINE MSU_MUTE_TIMER $1262
 
 .DEFINE MSU_FADE_IN_PROGRESS $1267
 .DEFINE MSU_FADE_TO_TRACK    $1266
 .DEFINE MSU_CURR_FADE_VOLUME $1265
+.DEFINE MSU_FADE_DELAY  $1264
 
 
 
@@ -276,3 +289,7 @@ ATTR_WORK_BYTE_0 = $20
 ATTR_WORK_BYTE_1 = ATTR_WORK_BYTE_0 + 1
 ATTR_WORK_BYTE_2 = ATTR_WORK_BYTE_0 + 2
 ATTR_WORK_BYTE_3 = ATTR_WORK_BYTE_0 + 3
+
+PAUSE_HDMA_START = $0A40
+TM_HDMA_START = $0A50
+TMW_HDMA_START = $0A60

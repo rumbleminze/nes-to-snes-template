@@ -7,9 +7,9 @@ infidelitys_scroll_handling:
   PHA 
   AND #$80
   BNE :+
-  LDA #$00
+  LDA #$01  ; assumes auto-poll joypad is tru
   BRA :++
-: LDA #$80
+: LDA #$81  ; assumes auto-poll joypad is tru
 : STA NMITIMEN
   PLA        
   PHA 
@@ -48,17 +48,40 @@ infidelitys_scroll_handling:
 
 
 setup_hdma:
-  LDA $200
-  CMP #$C5
-  BEQ :+
-    JMP nohud
-  :
-
   ; line count
   ;   HOFS_LB, HOFS_HB, VOFS_LB, VOFS_LB
   ; x3
   ; 00
+  ; set up 47 lines of hud
+  LDA $18
+  CMP #$0E
+  BEQ falling
 
+  LDA #47
+  STA SCROLL_HDMA_START
+  STZ SCROLL_HDMA_START + 1
+  STZ SCROLL_HDMA_START + 2
+  STZ SCROLL_HDMA_START + 3
+  STZ SCROLL_HDMA_START + 4
+
+  LDA #1
+  STA SCROLL_HDMA_START + 5
+  LDA curr_hoff_low  
+  STA SCROLL_HDMA_START + 6
+  LDA curr_ppu_ctrl_value
+  AND #$01
+  STA SCROLL_HDMA_START + 7
+  LDX curr_voff_low
+  LDA $A0A180,X
+  STA SCROLL_HDMA_START + 8
+  LDX curr_ppu_ctrl_value
+  LDA $A0A610,X
+  STA SCROLL_HDMA_START + 9
+  STZ SCROLL_HDMA_START + 10
+
+  rtl
+
+falling:
   LDX curr_voff_low
   LDA $A0A080,X
   STA SCROLL_HDMA_START + 0
@@ -96,129 +119,10 @@ setup_hdma:
   STA SCROLL_HDMA_START + 9
   STA SCROLL_HDMA_START + 14
 
- 
-  LDY #$0A
-  LDA SCROLL_HDMA_START
-  STA LINES_COMPLETE
-
-
-  LDA SCROLL_HDMA_START + 5
-  CLC
-  ADC LINES_COMPLETE
-  STA LINES_COMPLETE
-  SEC
-  SBC #LINE_TO_START_HUD
-
-  BMI :+
-    ; hit the end on 2nd one, back it up
-    STA LINES_COMPLETE
-    LDA SCROLL_HDMA_START + 5
-    SEC
-    SBC LINES_COMPLETE
-    STA SCROLL_HDMA_START + 5
-    BRA write_hud_values
-  :
-
-  LDY #$0F
-  LDA SCROLL_HDMA_START + 10
-  CLC
-  ADC LINES_COMPLETE
-  STA LINES_COMPLETE
-  SEC
-  SBC #LINE_TO_START_HUD
-  BMI :+
-    ; hit the end on the 3rd one, back it up
-    STA LINES_COMPLETE
-    LDA SCROLL_HDMA_START + 10
-    SEC
-    SBC LINES_COMPLETE
-    STA SCROLL_HDMA_START + 10
-    BRA write_hud_values
-  :
-    ; didn't get to enough lines, we actually have to bump up the last one
-    LDA #LINE_TO_START_HUD
-    SBC LINES_COMPLETE
-    ADC SCROLL_HDMA_START + 10
-    STA SCROLL_HDMA_START + 10
-
-write_hud_values:
-  ; 1 line (last write)
-  ;   HOFS_LB (always 0), HOFS_HB, VOFS_LB, VOFS_LB
-
-
-
-  LDA $40 ; 00 = Horizontal LVL, 01 = Vertical
-  Beq :+
-    ; 8 pixels of empty tiles
-    LDA #08
-    STA SCROLL_HDMA_START, Y
-    
-    INY 
-    LDA #$00
-    STA SCROLL_HDMA_START, Y  
-    
-    INY
-    LDA #$01
-    STA SCROLL_HDMA_START, Y
-
-    INY
-    LDA #$3C
-    STA SCROLL_HDMA_START, Y
-
-    INY
-    LDA #$00
-    STA SCROLL_HDMA_START, Y
-
-    ; now hud    
-    LDA #01
-    STA SCROLL_HDMA_START, Y
-    
-    INY 
-    LDA #$00
-    STA SCROLL_HDMA_START, Y  
-    
-    INY
-    LDA #$01
-    STA SCROLL_HDMA_START, Y
-    INY 
-    LDA #$30
-    STA SCROLL_HDMA_START, Y  
-    INY 
-    LDA #$00
-    STA SCROLL_HDMA_START, Y  
-
-    BRA :++
-  : 
-    ; for horizontal levels. some of them need to be adjusted
-    ; because for some god-forsaken reason
-    ; they moved the hud around by 8 pixels.
-
-    LDA #01
-    STA SCROLL_HDMA_START, Y
-    
-    INY 
-    LDA #$00
-    STA SCROLL_HDMA_START, Y  
-    
-    INY
-    LDA #$01
-    STA SCROLL_HDMA_START, Y
-    INY 
-    LDA #$38
-    STA SCROLL_HDMA_START, Y  
-    INY 
-    LDA #$00
-    STA SCROLL_HDMA_START, Y  
-    
-  :
-
-
-
-end_hdma:
+ end_hdma:
   ; end hdma byte
   LDA #$00
-  INY
-  STA SCROLL_HDMA_START, Y
+  STA SCROLL_HDMA_START+15
 
 
   RTL
@@ -343,3 +247,102 @@ simple_scrolling:
   STZ SCROLL_HDMA_START + 2
 : RTL
 
+setup_pause_overlay_hdma:
+PHB
+PHK
+PLB
+
+LDA #$7F
+STA PAUSE_HDMA_START
+STZ PAUSE_HDMA_START + 1
+STZ PAUSE_HDMA_START + 2
+
+LDA #$49
+STA PAUSE_HDMA_START + 3
+STZ PAUSE_HDMA_START + 4
+STZ PAUSE_HDMA_START + 5
+
+LDA #$08
+STA PAUSE_HDMA_START + 6
+LDY OPTIONS_MSU_PLAYLIST
+LDA msu_option_offsets, Y
+STA PAUSE_HDMA_START + 7
+STZ PAUSE_HDMA_START + 8
+
+LDA #$08
+STA PAUSE_HDMA_START + 9
+LDY OPTIONS_PALETTE
+LDA palette_option_offsets, Y
+STA PAUSE_HDMA_START + 10
+STZ PAUSE_HDMA_START + 11
+
+LDA #$08
+STA PAUSE_HDMA_START + 12
+STZ PAUSE_HDMA_START + 13
+STZ PAUSE_HDMA_START + 14
+STZ PAUSE_HDMA_START + 15
+
+
+PLB
+RTL
+
+paused_hdma:
+.byte $7F, $11, $49, $11, $01, $13, $00
+
+not_paused_hdma_TM_11:
+.byte $01, $11, $00 
+
+not_paused_hdma_TM_00:
+.byte $01, $00, $00
+
+
+setup_tm_hdma:
+  LDA $22 ; pause check, castlevania, for instance sets $22 to a non-0 value
+  LDA #$00 ; skip this by default
+  BEQ :+
+    ; paused
+    LDA #$7F
+    STA TM_HDMA_START
+    STA TMW_HDMA_START
+
+    LDA #$11
+    STA TM_HDMA_START + 1
+    STZ TMW_HDMA_START + 1
+
+    LDA #$41
+    STA TM_HDMA_START + 2 
+    STA TMW_HDMA_START + 2
+
+    LDA #$11
+    STA TM_HDMA_START + 3   
+    STZ TMW_HDMA_START + 3
+
+    LDA #$01
+    STA TM_HDMA_START + 4 
+    sta TMW_HDMA_START + 4
+
+    LDA #$13
+    STA TM_HDMA_START + 5
+    LDA #%00010011
+    STA TMW_HDMA_START + 5
+
+    STZ TM_HDMA_START + 6
+    STZ TMW_HDMA_START + 6
+    rtl
+
+  :
+
+  STZ TM_HDMA_START
+  LDA #$01
+  STA TMW_HDMA_START
+  STZ TMW_HDMA_START + 1
+  STZ TMW_HDMA_START + 2
+
+  rtl
+  
+
+msu_option_offsets:
+.byte $37, $3F, $47, $4F, $57, $5F, $67
+
+palette_option_offsets:
+.byte $66, $6E, $76, $7E, $86, $8E, $96, $9E, $A6, $AE, $B6, $BE, $C6, $CE, $D6, $DE

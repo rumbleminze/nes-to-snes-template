@@ -17,6 +17,7 @@ nmi:
     PHX
     PHY
     setAXY8
+
     ; sometimes the NES doesn't RTI, so we're going to set defaults for when it does that here
     ; jslb set_scrolling_hdma_defaults, $a0
     jslb store_current_hdma_values, $a0
@@ -32,14 +33,20 @@ nmi:
     PHA
     PLB
 
-    ; LifeForce NMI is at E76B
-    LDA #$E7
+    ; Example rest to Castlevania NMI at C052
+    LDA #$c0
     STA BANK_SWITCH_HB
-    LDA #$6B
+    LDA #$52
     STA BANK_SWITCH_LB
     PLY
     PLX
     PLA
+
+    ; eat one more stack variable
+    ; you may or may not need to do this
+    XBA
+    PLA
+    XBA
     JML [BANK_SWITCH_LB]
 
 return_from_nes_nmi:

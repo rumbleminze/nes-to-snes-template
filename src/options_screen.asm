@@ -21,17 +21,17 @@ option_tiles:
 .byte $64, $21, $0B, P6, $29, P6, $2b, P6, $1e, P6, $2c, P6, $2c, P6, $34, P6, $2c, P6, $2d, P6, $1a, P6, $2b, P6, $2d
 
 ; PRESS SELECT FOR MSU-1 OPTIONS
-; .addr $2277
-; .byte $05, P6, $29, P6, $2b, P6, $1e, P6, $2c, P6, $2c; PRESS 
+.addr $2277
+.byte $05, P6, $29, P6, $2b, P6, $1e, P6, $2c, P6, $2c; PRESS 
 
-; .addr $2297
-; .byte $06, P6, $2c, P6, $1e, P6, $25, P6, $1e, P6, $1c, P6, $2d ; SELECT
+.addr $2297
+.byte $06, P6, $2c, P6, $1e, P6, $25, P6, $1e, P6, $1c, P6, $2d ; SELECT
 
-; .addr $22B7
-; .byte $08, P6, $1f, P6, $28, P6, $2b, P6, $34, P6, $26, P6, $2c, P6, $2e, P6, $11 ; FOR MSU1       
+.addr $22B7
+.byte $08, P6, $1f, P6, $28, P6, $2b, P6, $34, P6, $26, P6, $2c, P6, $2e, P6, $11 ; FOR MSU1       
 
-; .addr $22D7
-; .byte $07, P6, $28, P6, $29, P6, $2d, P6, $22, P6, $28, P6, $27, P6, $2C ; OPTIONS
+.addr $22D7
+.byte $07, P6, $1c, P6, $2b, P6, $1e, P6, $1d, P6, $22, P6, $2d, P6, $2c ; CREDITS
 
 P0 = $00
 P1 = $04
@@ -68,14 +68,22 @@ P3_3 = $1E
 
 
 show_options_screen:
-
+    
     LDX #$20
     LDA RDNMI
     : LDA RDNMI
     BPL :-
     DEX
     BPL :-
+    
+    jsr read_input
+    LDA MSU_AVAILABLE
+    BNE :+
+        jsr decrement_msu1
+    :
 
+    LDA #$11
+    STA TM
 
     STZ CURR_OPTION
 
@@ -110,6 +118,18 @@ show_options_screen:
     PLB
     JSR load_options_sprites
     jsr write_single_color_tiles_to_3000
+
+    ; randomizes the MSU selection based on how many frames have passed
+    LDA $20
+    AND #$07
+    ; scale down to 0 - 5
+    CMP #$05
+    BCC:+
+        SEC
+        SBC #$05
+    :
+    STA OPTIONS_MSU_PLAYLIST
+
     jsr initialize_options
     jslb dma_oam_table_long, $a0
     LDA #$0F
@@ -121,15 +141,22 @@ show_options_screen:
 NEEDS_OAM_DMA = $11
 input_loop:
     LDA RDNMI
-    BPL :+
+:   LDA RDNMI
+    BPL :-
+
+    jslb msu_nmi_check, $b2
+    ; we gotta waste some time here
+    LDX #$00
+:   DEX
+    BNE :-
+
+    jsr read_input
     LDA NEEDS_OAM_DMA
     BEQ :+
-    jslb dma_oam_table_long, $a0
-    
-    STZ NEEDS_OAM_DMA
+        jslb dma_oam_table_long, $a0
+        
+        STZ NEEDS_OAM_DMA
 :   
-    jslb msu_nmi_check, $b2
-    jsr read_input
     LDA JOYTRIGGER1
 
     CMP #DOWN_BUTTON
@@ -159,11 +186,8 @@ input_loop:
 :   CMP #SELECT_BUTTON
     BNE input_loop
     
-    LDA MSU_AVAILABLE
-    beq input_loop
-
-    ; JSR show_msu_track_screen
-    JMP show_options_screen
+   jmp show_credits
+   BRA input_loop
 
 exit_options:
     ; stop msu1
@@ -174,6 +198,11 @@ exit_options:
     STZ MSU_CURR_CTRL    
     STZ MSU_PLAYING
     STZ CURRENT_NSF
+    LDA MSU_SELECTED
+    BNE :+
+        LDA #$06
+        STA OPTIONS_MSU_PLAYLIST
+    :
     jslb msu_nmi_check, $b2
 
     jsr clear_extra_palattes
@@ -300,16 +329,8 @@ load_options_sprites:
     RTS
 
 read_input:
-    lda #$01
-    STA JOYSER0
+    LDA JOY1H
     STA buttons
-    LSR A
-    sta JOYSER0
-@loop:
-    lda JOYSER0
-    lsr a
-    rol buttons
-    bcc @loop
 
     lda buttons
     ldy JOYPAD1
@@ -365,14 +386,24 @@ option_0_side_effects:
     rts
 
 
-option_3_side_effects:
+option_4_side_effects:
+    ; prevent turning on msu if it's unavailable
+    LDA MSU_AVAILABLE
+    BNE :++
+        LDA OPTIONS_MSU_SELECTED
+        BNE :+
+            jsr decrement_msu1
+        :
+        rts
+    :
+
     LDA OPTIONS_MSU_SELECTED
     EOR #$01
     STA MSU_SELECTED
 
     ; fall through to option 5 side effects
 
-option_4_side_effects:
+option_5_side_effects:
 
     LDA RDNMI
     : LDA RDNMI
@@ -387,13 +418,13 @@ option_4_side_effects:
     LDA RDNMI
     : LDA RDNMI
     BPL :-
-    LDA #$25
+    LDA #$F0
     jslb msu_check, $B2
     rts
 
 option_1_side_effects:
 option_2_side_effects: 
-option_5_side_effects:
+option_3_side_effects:
 option_6_side_effects:
 option_7_side_effects:
 option_8_side_effects:
@@ -440,4 +471,4 @@ single_color_tiles:
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 
-; .include "msu_track_selection_screen.asm"
+.include "msu1-credits.asm"

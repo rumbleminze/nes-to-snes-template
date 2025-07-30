@@ -341,6 +341,28 @@ WriteAPUNoiseCtrl3:
     plx
     rts
 
+WriteAPUDMCCounter:
+    stx DmcCounter_4011
+rts
+
+WriteAPUDMCFreq:
+    sta DmcFreq_4010
+rts
+
+WriteAPUDMCAddr:
+    sta DmcAddress_4012
+rts
+
+WriteAPUDMCLength:
+    sta DmcLength_4013
+rts
+
+WriteAPUDMCPlay:
+    sta ApuStatus_4015
+    and #%00010000
+    sta APUExtraControl
+rts
+
 WriteAPUControl:
     sta APUIOTemp
     xba
@@ -396,5 +418,314 @@ Sound__EmulateLengthCounter_length_d3_mixed:
 .byte $25,$25,$25,$25,$25,$25,$25,$25,$0E,$0E,$0E,$0E,$0E,$0E,$0E,$0E
 .byte $09,$09,$09,$09,$09,$09,$09,$09,$0F,$0F,$0F,$0F,$0F,$0F,$0F,$0F
 .byte $11,$11,$11,$11,$11,$11,$11,$11,$10,$10,$10,$10,$10,$10,$10,$10
+
+bank_switch_rewrite:
+  LDA NMITIMEN_STATE
+  AND #$7F
+  STA NMITIMEN  
+
+  TYA
+  INC
+  ORA #$A0
+  STA BANK_SWITCH_DB
+  PHA
+
+  LDA #<bank_switch_jump
+  STA BANK_SWITCH_LB
+  LDA #>bank_switch_jump
+  STA BANK_SWITCH_HB
+  JML (BANK_SWITCH_LB)
+bank_switch_jump:
+  PLB
+  TYA
+  jslb reset_nmi_status, $a0
+  RTS
+
+set_ppu_mask:
+  jslb set_ppu_mask_to_accumulator, $a0
+  RTS
+
+set_ppu_control:
+  jslb update_ppu_control_from_a, $a0
+  RTS
+
+; any routines that need to be available from all banks
+; can be defined here and will be available at the same
+; point in wram for all banks.  Examples from Castlevania below.
+;
+; c0c0_rewrite:
+;   LDA PPU_MASK_STATE
+;   LDX $1F
+;   BEQ :+
+;   LDA #$00
+; : jslb set_ppu_mask_to_accumulator_without_store, $a0
+;   rts
+
+; .define BRR_PLAYING $FF
+; sound_hijack:
+;   jslb check_for_rumble, $a0
+;   JSR check_for_brr
+;   CMP #BRR_PLAYING
+;   ; if brr is playing pretend sfx are muted and just rts
+;   BNE :+
+;     LDA #$00
+;     RTS    
+; : ; handle as normal
+  
+;   jslb play_track_hijack, $b2
+;   STA $07F6
+;   LDA CURRENT_NSF
+;   CMP #$4E
+;   BNE :+
+;     sta $07F6
+;  :
+;   STY $07F5
+;   LDA #$01
+;   STA $7F
+;   LDY #$00
+;   JSR $C1D8
+;   LDA $07F6
+;   JSR $8187
+;   JSR $C1CF
+;   LDY $07F5
+;   LDA #$00
+;   STA $7F
+;   RTS
+
+
+; .define BRR_ITEM_PICKUP         $16
+; .define BRR_MONEY_PICKUP        $17
+; .define BRR_WHIP_PICKUP         $18
+; .define BRR_ENTER_CASTLE        $19
+; .define STOPWATCH               $1A
+; .define BRR_INVINC_PICKUP       $1B
+; .define BRR_INVINCE_WEAR_OFF    $1C
+; .define BRR_DOOR_OPEN           $1D
+; .define BRR_TREASURE_PICKUP     $23
+; .define BRR_SIMON_HIT           $FD
+
+; ; set brr attenuation to be > 20 if we should halve the volume
+; brr_attenuation:
+; ; 16-17
+; .byte $21 ; item pickup
+; .byte $10 ; money pickup
+; ; 18 - 1F
+; .byte $21 ; whip pickup
+; .byte $10 ; enter castle
+; .byte $00 ; stopwatch - n/a
+; .byte $10 ; invinc pickup
+; .byte $10 ; invinc wear off
+; .byte $21 ; door open
+; .byte $00 ; not used
+; .byte $00 ; not used
+; ; 20 - 23
+; .byte $00   ; not used
+; .byte $00   ; not used
+; .byte $00   ; not used
+; .byte $10   ; tresure
+
+; check_for_brr:
+;   CMP #BRR_ITEM_PICKUP
+;   BEQ :+
+;   CMP #BRR_MONEY_PICKUP
+;   BEQ :+
+;   CMP #BRR_WHIP_PICKUP
+;   BEQ :+
+;   CMP #BRR_ENTER_CASTLE
+;   BEQ :+
+;   CMP #BRR_TREASURE_PICKUP
+;   BEQ :+
+;   CMP #BRR_DOOR_OPEN
+;   BEQ :+
+;   CMP #BRR_INVINCE_WEAR_OFF
+;   BEQ :+
+;   CMP #BRR_INVINC_PICKUP
+;   BEQ :+
+;   ; special case for stopwatch playing
+;   CMP #STOPWATCH
+;   BEQ stopwatch_pause_music
+;   BRA :++
+
+;     ; we found our BRR!  YAY
+;  :  
+;     ; which sample to play
+;     STA DmcAddress_4012    
+
+;     ; set this to be > $20 to cut volume in half
+;     SEC
+;     SBC #$16
+;     TAY
+;     LDA brr_attenuation, Y
+;     ; LDA #$08
+;     STA DmcCounter_4011
+
+;     LDA #$08
+;     STA DmcFreq_4010
+    
+;     LDA #$10
+;     ORA APUExtraControl
+;     STA APUExtraControl
+;     LDA #BRR_PLAYING 
+;   :
+;   RTS
+; stopwatch_pause_music:
+;     jslb pause_msu_for_stopwatch, $b2
+;     RTS
+
+; lives_options:
+; .byte $03, $03, $09
+
+; set_starting_lives:
+;   PHY
+;   LDY OPTIONS_DIFFICULTY
+;   LDA lives_options, Y
+;   STA $2A
+;   PLY
+;   RTS
+
+; set_subweapon_pickup_vars:
+
+;   LDA OPTIONS_SUB_WEAPON_SWAP
+;   BNE :+
+
+;   LDA CURRENT_SUB_WEAPON
+;   BEQ :+
+;     STA OTHER_SUB_WEAPON_HELD    
+;     LDA $64
+;     STA OTHER_SUB_WEAPON_MULTIPLIER
+;   :
+  
+;   LDA OPTIONS_DIFFICULTY
+;   CMP #DIFFICULTY_EASY
+;   BEQ:+
+;     ; remove the double/triple if we're not on easy
+;     STZ $79
+;     STZ $64
+;   :
+;   RTS
+
+; set_subweapon_on_death:
+;   LDA OPTIONS_DIFFICULTY
+;   CMP #DIFFICULTY_EASY
+;   BEQ :+
+;   LDA #$00
+;   STA $015B
+;   STA $64
+;   STA OTHER_SUB_WEAPON_HELD
+;   STA OTHER_SUB_WEAPON_MULTIPLIER
+; : RTS
+
+; starting_hearts:
+; .byte 5, 0, 30
+
+; set_starting_hearts:
+;   PHY
+;   LDY OPTIONS_DIFFICULTY
+;   LDA starting_hearts, Y
+;   STA $71
+;   PLY
+;   RTS
+
+; handle_damage:
+;   LDA $45
+;   BMI :++
+;   PHA
+;   LDA OPTIONS_DIFFICULTY
+;   CMP #DIFFICULTY_EASY
+;   BNE :+
+;     ;   half the damage
+;     LDA $4B
+;     LSR
+;     STA $4B
+; : 
+;   LDA OPTIONS_DIFFICULTY
+;   CMP #DIFFICULTY_HARD
+;   BNE :+
+;     ;  double damage
+;     LDA $4B
+;     ASL 
+;     STA $4B
+;   :
+  
+;   PLA
+;   SEC
+;   SBC $4B
+;   STA $45
+
+; : RTS
+
+; handle_boss_damage:
+;   LDA OPTIONS_DIFFICULTY
+;   CMP #DIFFICULTY_EASY
+;   BNE :+
+;     ; double the damage, which is stored in $0D
+;     ASL $0D
+;   :
+
+;   LDA $01A8
+;   SEC
+;   SBC $0C
+;   STA $01A8
+;   LDA $01A9
+;   SBC $0D
+;   BPL :+
+;   LDA #$00
+; : STA $01A9
+;   RTS
+
+; is_easy:
+;   LDA OPTIONS_DIFFICULTY
+;   CMP #DIFFICULTY_EASY
+;   RTS
+
+; set_non_knockback_values:
+;   LDA #$10
+;   STA $47
+;   LDA #$30
+;   STA $5B
+
+;   rts
+
+
+; vs_mode_timers:
+; ; levels 1-3 are all 170
+; .byte $01, $01, $01, $01, $01, $01, $01, $01, $01
+; ; level 4-6 are 370, 470, 670 
+; .byte $03, $03, $03, $04, $04, $04, $06, $06, $06
+
+; set_timer:
+;   LDA #$00
+;   STA $42
+;   LDX $28
+;   LDA $C9F6,X
+;   STA $43
+  
+;   LDA OPTIONS_DIFFICULTY
+;   CMP #DIFFICULTY_HARD
+;   BNE :+ 
+;     LDA vs_mode_timers, X
+;     STA $43
+;     LDA #$70
+;     STA $42
+;   :
+;   RTS
+
+; set_starting_loop:
+;   PHA
+;   LDA OPTIONS_LOOP
+;   STA $2B
+;   PLA
+;   STZ $28    
+;   STZ $0434
+;   STZ $70
+;   LDX #$01
+;   STX $2C
+;   rts
+
+; get_hit_side_effects:
+;   LDA #$01
+;   STA RUMBLE_WAVE_FORM_PLAYING
+;   STZ RUMBLE_WAVE_FORM_IDX
+;   rts
 
 routines_end:

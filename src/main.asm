@@ -31,15 +31,6 @@
 .include "bank5.asm"
 .include "bank6.asm"
 
-; These are optional if the game uses CH ROM
-; .include "chrom-tiles-0.asm"
-; .include "chrom-tiles-1.asm"
-; .include "chrom-tiles-2.asm"
-; .include "chrom-tiles-3.asm"
-; .include "chrom-tiles-4.asm"
-; .include "chrom-tiles-5.asm"
-; .include "chrom-tiles-6.asm"
-; .include "chrom-tiles-7.asm"
 ; these are tiles I use for intro/menu screens
 .include "chrom-basic-intro-tiles.asm"
 
