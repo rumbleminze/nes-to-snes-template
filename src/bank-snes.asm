@@ -180,7 +180,6 @@ initialize_registers:
   STZ ATTR_NES_VM_ADDR_HB
   STZ ATTR_NES_VM_ADDR_LB
   STZ ATTR_NES_VM_ATTR_START
-  STZ ATTRIBUTE2_DMA
   STZ ATTRIBUTE_DMA
   LDA #$00
   LDA #$01 ;  comment this to not use auto-poll joypad
@@ -198,9 +197,12 @@ initialize_registers:
     jslb check_for_all_tracks_present, $b2
   :
 
-  jslb do_intro, $b1  
-  jslb draw_msu_bg2, $b2
-  ; LDA #$00
+  jslb do_new_intro, $b6
+  
+  ; MSU 1 Selection screen
+  ; jslb show_msu1_selection, $b6
+
+
   LDA #$01 ; uncomment this to use auto-poll joypad
   STA NMITIMEN_STATE
   
@@ -208,13 +210,13 @@ initialize_registers:
   PLB
 
 intro_done:
+  jslb force_blank_and_store, $a0 
   STZ TM      
   STZ TS      
   STZ TMW   
   LDA #$30
   STA CGWSEL
   STZ CGADSUB
-  
   JSR setup_hide_left_8_pixel_window
   JSL disable_hide_left_8_pixel_window
   JSR clearvm_to_12
@@ -594,13 +596,7 @@ dma_values:
 
   .include "hdma_scroll_lookups.asm"
 
-; OLD_2A03 doesn't support brr samples, but might work ok.
-; the new one us uaully better.
-.if OLD_2A03 = 0
   .include "2a03_conversion.asm"
-.else
-  .include "2a03_conversion_v0.asm"
-.endif
 
   .include "attributes.asm"
   .include "palette_updates.asm"

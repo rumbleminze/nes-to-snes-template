@@ -1,6 +1,41 @@
 ; This is used for bankswapping CHR Rom banks quickly by putting various banks
 ; at places in VRAM and changing where the BG tiles are loaded from
 bankswap_table:
+.byte .lobyte(chrom_bank_0_tileset_0),  .hibyte(chrom_bank_0_tileset_0), $A8
+.byte .lobyte(chrom_bank_0_tileset_1),  .hibyte(chrom_bank_0_tileset_1), $A8
+.byte .lobyte(chrom_bank_0_tileset_2),  .hibyte(chrom_bank_0_tileset_2), $A8
+.byte .lobyte(chrom_bank_0_tileset_3),  .hibyte(chrom_bank_0_tileset_3), $A8
+
+.byte .lobyte(chrom_bank_1_tileset_4),  .hibyte(chrom_bank_1_tileset_4), $A9
+.byte .lobyte(chrom_bank_1_tileset_5),  .hibyte(chrom_bank_1_tileset_5), $A9
+.byte .lobyte(chrom_bank_1_tileset_6),  .hibyte(chrom_bank_1_tileset_6), $A9
+.byte .lobyte(chrom_bank_1_tileset_7),  .hibyte(chrom_bank_1_tileset_7), $A9
+
+.byte .lobyte(chrom_bank_2_tileset_8),  .hibyte(chrom_bank_2_tileset_8), $AA
+.byte .lobyte(chrom_bank_2_tileset_9),  .hibyte(chrom_bank_2_tileset_9), $AA
+.byte .lobyte(chrom_bank_2_tileset_10), .hibyte(chrom_bank_2_tileset_10), $AA
+.byte .lobyte(chrom_bank_2_tileset_11), .hibyte(chrom_bank_2_tileset_11), $AA
+.byte .lobyte(chrom_bank_3_tileset_12), .hibyte(chrom_bank_3_tileset_12), $AB
+.byte .lobyte(chrom_bank_3_tileset_13), .hibyte(chrom_bank_3_tileset_13), $AB
+.byte .lobyte(chrom_bank_3_tileset_14), .hibyte(chrom_bank_3_tileset_14), $AB
+.byte .lobyte(chrom_bank_3_tileset_15), .hibyte(chrom_bank_3_tileset_15), $AB
+.byte .lobyte(chrom_bank_4_tileset_16), .hibyte(chrom_bank_4_tileset_16), $AC
+.byte .lobyte(chrom_bank_4_tileset_17), .hibyte(chrom_bank_4_tileset_17), $AC
+.byte .lobyte(chrom_bank_4_tileset_18), .hibyte(chrom_bank_4_tileset_18), $AC
+.byte .lobyte(chrom_bank_4_tileset_19), .hibyte(chrom_bank_4_tileset_19), $AC
+.byte .lobyte(chrom_bank_5_tileset_20), .hibyte(chrom_bank_5_tileset_20), $AD
+.byte .lobyte(chrom_bank_5_tileset_21), .hibyte(chrom_bank_5_tileset_21), $AD
+.byte .lobyte(chrom_bank_5_tileset_22), .hibyte(chrom_bank_5_tileset_22), $AD
+.byte .lobyte(chrom_bank_5_tileset_23), .hibyte(chrom_bank_5_tileset_23), $AD
+.byte .lobyte(chrom_bank_6_tileset_24), .hibyte(chrom_bank_6_tileset_24), $AE
+.byte .lobyte(chrom_bank_6_tileset_25), .hibyte(chrom_bank_6_tileset_25), $AE
+.byte .lobyte(chrom_bank_6_tileset_26), .hibyte(chrom_bank_6_tileset_26), $AE
+.byte .lobyte(chrom_bank_6_tileset_27), .hibyte(chrom_bank_6_tileset_27), $AE
+.byte .lobyte(chrom_bank_7_tileset_28), .hibyte(chrom_bank_7_tileset_28), $AF
+.byte .lobyte(chrom_bank_7_tileset_29), .hibyte(chrom_bank_7_tileset_29), $AF
+.byte .lobyte(chrom_bank_7_tileset_30), .hibyte(chrom_bank_7_tileset_30), $AF
+.byte .lobyte(chrom_bank_7_tileset_31), .hibyte(chrom_bank_7_tileset_31), $AF
+
 ; bank #$20, my basic intro tiles
 .byte <(basic_intro_tiles), >(basic_intro_tiles), $B0
 ; banks of msu tiles for the video
@@ -11,211 +46,18 @@ bankswap_table:
   .byte <(msu_intro_tiles_3), >(msu_intro_tiles_3), $B1
 .endif
 
-; .byte .lobyte(chrom_bank_0_tileset_0),  .hibyte(chrom_bank_0_tileset_0), $A8
-; .byte .lobyte(chrom_bank_0_tileset_1),  .hibyte(chrom_bank_0_tileset_1), $A8
-; .byte .lobyte(chrom_bank_0_tileset_2),  .hibyte(chrom_bank_0_tileset_2), $A8
-; .byte .lobyte(chrom_bank_0_tileset_3),  .hibyte(chrom_bank_0_tileset_3), $A8
+ : RTL
 
-; .byte .lobyte(chrom_bank_1_tileset_4),  .hibyte(chrom_bank_1_tileset_4), $A9
-; .byte .lobyte(chrom_bank_1_tileset_5),  .hibyte(chrom_bank_1_tileset_5), $A9
-; .byte .lobyte(chrom_bank_1_tileset_6),  .hibyte(chrom_bank_1_tileset_6), $A9
-; .byte .lobyte(chrom_bank_1_tileset_7),  .hibyte(chrom_bank_1_tileset_7), $A9
-
-; .byte .lobyte(chrom_bank_2_tileset_8),  .hibyte(chrom_bank_2_tileset_8), $AA
-; .byte .lobyte(chrom_bank_2_tileset_9),  .hibyte(chrom_bank_2_tileset_9), $AA
-; .byte .lobyte(chrom_bank_2_tileset_10), .hibyte(chrom_bank_2_tileset_10), $AA
-; .byte .lobyte(chrom_bank_2_tileset_11), .hibyte(chrom_bank_2_tileset_11), $AA
-
-; .byte .lobyte(chrom_bank_3_tileset_12), .hibyte(chrom_bank_3_tileset_12), $AB
-; .byte .lobyte(chrom_bank_3_tileset_13), .hibyte(chrom_bank_3_tileset_13), $AB
-; .byte .lobyte(chrom_bank_3_tileset_14), .hibyte(chrom_bank_3_tileset_14), $AB
-; .byte .lobyte(chrom_bank_3_tileset_15), .hibyte(chrom_bank_3_tileset_15), $AB
-
-; .byte .lobyte(chrom_bank_4_tileset_16), .hibyte(chrom_bank_4_tileset_16), $AC
-; .byte .lobyte(chrom_bank_4_tileset_17), .hibyte(chrom_bank_4_tileset_17), $AC
-; .byte .lobyte(chrom_bank_4_tileset_18), .hibyte(chrom_bank_4_tileset_18), $AC
-; .byte .lobyte(chrom_bank_4_tileset_19), .hibyte(chrom_bank_4_tileset_19), $AC
-
-; .byte .lobyte(chrom_bank_5_tileset_20), .hibyte(chrom_bank_5_tileset_20), $AD
-; .byte .lobyte(chrom_bank_5_tileset_21), .hibyte(chrom_bank_5_tileset_21), $AD
-; .byte .lobyte(chrom_bank_5_tileset_22), .hibyte(chrom_bank_5_tileset_22), $AD
-; .byte .lobyte(chrom_bank_5_tileset_23), .hibyte(chrom_bank_5_tileset_23), $AD
-
-; .byte .lobyte(chrom_bank_6_tileset_24), .hibyte(chrom_bank_6_tileset_24), $AE
-; .byte .lobyte(chrom_bank_6_tileset_25), .hibyte(chrom_bank_6_tileset_25), $AE
-; .byte .lobyte(chrom_bank_6_tileset_26), .hibyte(chrom_bank_6_tileset_26), $AE
-; .byte .lobyte(chrom_bank_6_tileset_27), .hibyte(chrom_bank_6_tileset_27), $AE
-
-; .byte .lobyte(chrom_bank_7_tileset_28), .hibyte(chrom_bank_7_tileset_28), $AF
-; .byte .lobyte(chrom_bank_7_tileset_29), .hibyte(chrom_bank_7_tileset_29), $AF
-; .byte .lobyte(chrom_bank_7_tileset_30), .hibyte(chrom_bank_7_tileset_30), $AF
-; .byte .lobyte(chrom_bank_7_tileset_31), .hibyte(chrom_bank_7_tileset_31), $AF
-
-; rewrite of E6CA - need to keep db set to wherever we came from
-; track how many PPU bytes we've writen to the cache
-
-
-; use $10/$11 to point to VM cache write
-VM_CACHE_PTR = $10
-
-write_vm_cache:
-  ; assume VM addres is already set
-  LDX #$00
-  LDY #$08
-
-:
-  LDA VM_CACHE, Y
-  STA VMDATAH
-  LDA VM_CACHE, X
-  STA VMDATAL
-
-  INX
-  INY
-
-  CPY #$10
-  BNE :-
-
-  STZ VMDATAL
-  STZ VMDATAL
-  STZ VMDATAL
-  STZ VMDATAL
-  STZ VMDATAL
-  STZ VMDATAL
-  STZ VMDATAL
-  STZ VMDATAL
-
-  STZ VM_CACHE_PTR
-  RTS
-
-write_to_vm_cache:
-  PHX
-  PHY
-  PHA
-
-  LDY #$00
-  STA (VM_CACHE_PTR), Y
-  INC VM_CACHE_PTR
-
-  LDA VM_CACHE_PTR
-  CMP #$10
-  BNE :+
-    jsr write_vm_cache
-  :
-
-  PLA
-  PLY
-  PLX
-  RTS
-
-load_tileset_x:
-  LDA VM_CACHE_PTR
-  PHA
-  LDA VM_CACHE_PTR + 1
-  PHA
-
-  LDA #<VM_CACHE
-  STA VM_CACHE_PTR
-  LDA #>VM_CACHE
-  STA VM_CACHE_PTR + 1
-
-  LDA $E6EE,X
-  STA $00
-  LDA $E6EF,X
-  STA $01
-
-  ; JMP $F09E
-  JSR $E8C3
-  STA $21
-  STA $FC
-  STA $FD
-  LDA RDNMI
-
-  ; get the starting VM Address
-  LDY #$01
-  LDA ($00),Y
-  STA VMADDH ; PpuAddr_2006
-  DEY
-  LDA ($00),Y
-  STA VMADDL ; PpuAddr_2006
-
-  LDX #$00
-  LDA #$02  
-  JSR $EF37
-
-nes_F0BE:
-  LDY #$00
-  LDA ($00),Y
-
-  ; check for done
-  CMP #$FF
-  BEQ return_load_tileset_x
-
-  CMP #$7F
-  BEQ nes_F0FC
-  
-  ; not special control values (FF = done, 7F = ???)
-  TAY
-  BPL nes_F0EA
-
-  AND #$7F
-  STA $02
-  LDY #$01
-
-nes_F0D3:
-  LDA ($00),Y
-  jsr write_to_vm_cache ; STA PpuData_2007
-  CPY $02
-  BEQ nes_F0DF
-  INY
-  BNE nes_F0D3
-
-nes_F0DF:
-  LDA #$01
-  CLC
-  ADC $02
-
-nes_F0E4:
-  JSR $EF37
-  JMP nes_F0BE
-
-; positive values of rle
-nes_F0EA:
-  LDY #$01
-  STA $02
-  LDA ($00),Y
-  LDY $02
-: jsr write_to_vm_cache ; STA PpuData_2007
-  DEY
-  BNE :-
-  LDA #$02
-  BNE nes_F0E4
-
-nes_F0FC:
-  LDA #$01
-  JSR $EF37
-  JMP $F0A7
-  JMP $E893
-
-return_load_tileset_x:
-  PLA
-  STA VM_CACHE_PTR + 1
-  PLA
-  STA VM_CACHE_PTR
-  
-  RTL
-
-
-: RTL
 check_for_chr_bankswap:
 
   LDA OBJ_CHR_BANK_SWITCH
   CMP #$FF
   BEQ :-
-  CMP CHR_BANK_CURR_P1
+  CMP CHR_BANK_0_CURR
   BEQ :-
 
   LDA OBJ_CHR_BANK_SWITCH
-  STA CHR_BANK_CURR_P1
+  STA CHR_BANK_0_CURR
   ; LDA #$FF
   ; STA OBJ_CHR_BANK_SWITCH
   
@@ -227,9 +69,9 @@ check_for_chr_bankswap:
   ; looks like we need to switch CHR Banks
   ; we fake this by DMA'ing tiles from the right tileset
   ; multiply by 3 to get the offset
-  LDA CHR_BANK_CURR_P1
+  LDA CHR_BANK_0_CURR
   ASL A
-  ADC CHR_BANK_CURR_P1
+  ADC CHR_BANK_0_CURR
   TAY
 
   LDA #$80
@@ -273,6 +115,7 @@ check_for_chr_bankswap:
   LDA VMAIN_STATE
   STA VMAIN
 
+
 : RTL
 
 
@@ -295,19 +138,140 @@ check_for_bg_chr_bankswap:
 ;   CMP #$1A
 ;   BPL swap_data_bg_chr
 
-  CMP BG_CHR_BANK_CURR
+  CMP CHR_BANK_1_CURR
   BEQ :-
 
+
+  rtl
+
+load_secondary_map_banks:
+  jslb load_15_to_6, $a0
+  jslb load_17_to_7, $a0
+  rtl
+
+load_11_to_3:
+  LDA #$11
+  STA CHR_BANK_BANK_TO_LOAD
+  LDA #$03
+  STA TARGET_BANK_OFFSET
+  jmp bankswap_start
+
+backswap_to_11:
+  LDA #$43
+  STA BG12NBA
+  rtl
+
+
+load_15_to_6:
+  LDA #$15
+  STA CHR_BANK_BANK_TO_LOAD
+  LDA #$06
+  STA TARGET_BANK_OFFSET
+  jmp bankswap_start
+
+load_17_to_7:
+  LDA #$17
+  STA CHR_BANK_BANK_TO_LOAD
+  LDA #$07
+  STA TARGET_BANK_OFFSET
+  jmp bankswap_start
+
+load_bank_18:
+  LDA #$18
+  STA CHR_BANK_BANK_TO_LOAD
+  LDA #$05
+  STA TARGET_BANK_OFFSET
+  jmp bankswap_start
+
+load_bank_1c:
+  LDA #$1C
+  STA CHR_BANK_BANK_TO_LOAD
+  LDA #$04
+  STA TARGET_BANK_OFFSET
+  bra bankswap_start
+load_bank_1c_low_sprites:
+  LDA #$1C
+  STA CHR_BANK_BANK_TO_LOAD
+  LDA #$06
+  STA TARGET_BANK_OFFSET
+  bra bankswap_start
+load_bank_1d_high_sprites:
+  LDA #$1D
+  STA CHR_BANK_BANK_TO_LOAD
+  LDA #$07
+  STA TARGET_BANK_OFFSET
+  bra bankswap_start
+bankswap_to_1c:
+  LDA #$44
+  STA BG12NBA
+  rtl
+bankswap_to_18:
+  LDA #$45
+  STA BG12NBA
+: rtl
+; bank 0 is not always the BG =(
+; this swaps out more than sprites mid-load
+; we we'll save several banks in VRAM of tiles
+; bank #$18 is literally the only weird one
+; we're going to store it in $4000
+bankswap_chr_bank_0:
+  CMP #$18
+  BEQ bankswap_to_18
+  CMP #$1C
+  BEQ bankswap_to_1c
+  CMP #$11
+  BEQ backswap_to_11
+  CMP #$14
+  BNE :+
+    PHA
+    jslb load_secondary_map_banks, $a0
+    PLA
+  :
+  XBA  
+  LDA #$40
+  STA BG12NBA
+  XBA
+  CMP CHR_BANK_0_CURR
+  BEQ :--
+  STA CHR_BANK_0_CURR
+  STA CHR_BANK_BANK_TO_LOAD
+  STZ TARGET_BANK_OFFSET
+  STA BG_CHR_BANK_SWITCH
+  LDA #$40
+  STA BG12NBA
+  bra bankswap_start
+
+; bank 1 is always the Sprites
+bankswap_chr_bank_1:
+  CMP CHR_BANK_1_CURR
+  BEQ :--
+  STA CHR_BANK_1_CURR
+  STA CHR_BANK_BANK_TO_LOAD
+
+  LDA IN_INTRO_SEQ
+  BEQ :+
+    LDA #$07
+    BRA :++
+  : LDA #$01
+  :
+
+  ; STZ TARGET_BANK_OFFSET
+  ; INC TARGET_BANK_OFFSET
+  STA TARGET_BANK_OFFSET
+  STA BG_CHR_BANK_SWITCH
+  bra bankswap_start
+
 bankswap_start:
-  LDA NMITIMEN_STATE
+  
+  LDA NMITIMEN_CACHE
   AND #$7F
   STA NMITIMEN
   
-  LDA INIDISP_STATE
+  LDA INIDISP_CACHE
   ORA #$80
   STA INIDISP
 
-  ; LDA RDNMI
+  LDA RDNMI
 : LDA RDNMI
   AND #$80
   BEQ :-
@@ -316,22 +280,19 @@ bankswap_start:
   ; STA INIDISP
   ; STZ TM
   
-  LDA BG_CHR_BANK_SWITCH
-  STA BG_CHR_BANK_CURR
   ; LDA #$FF
   ; STA OBJ_CHR_BANK_SWITCH
 
   PHB
-  LDA #$A0
-  PHA
+  PHK
   PLB
 
   ; looks like we need to switch CHR Banks
   ; we fake this by DMA'ing tiles from the right tileset
   ; multiply by 3 to get the offset
-  LDA BG_CHR_BANK_CURR
+  LDA CHR_BANK_BANK_TO_LOAD
   ASL A
-  ADC BG_CHR_BANK_CURR
+  ADC CHR_BANK_BANK_TO_LOAD
   TAY
 
   LDA #$80
@@ -363,8 +324,11 @@ bankswap_start:
   STZ DAS1L
 
   ; page 2 is at $1000, data bank will add 6000 to that
-  LDA #$10
-  ADC TARGET_BANK_OFFSET
+  LDA TARGET_BANK_OFFSET
+  ASL
+  ASL
+  ASL
+  ASL
   STA VMADDH
   STZ VMADDL
   STZ TARGET_BANK_OFFSET
@@ -375,27 +339,29 @@ bankswap_start:
   LDA VMAIN_STATE
   STA VMAIN
 
-  LDA INIDISP_STATE
+  LDA INIDISP_CACHE
   STA INIDISP
 
-  LDA NMITIMEN_STATE
+  ; if fblank is on, don't wait for NMI
+  AND #$80
+  BNE :++
+ 
+  LDA RDNMI
+: LDA RDNMI
+  BPL :-
+  :
+  LDA NMITIMEN_CACHE
   STA NMITIMEN
-
-  ; LDA #$11
-  ; STA TM
-  ; LDA INIDISP_STATE
-  ; STA INIDISP
 
   RTL
 
 bankswitch_bg_chr_data:
   PHB
-  LDA #$A0
-  PHA
+  PHK
   PLB
 
-  ; bgs are on 1000, 3000, 5000, 7000.
-  LDY #$01
+  ; bgs are on 0000, 3000, 4000, 5000, 6000, 7000.
+  LDY #$00
 : LDA CHR_BANK_LOADED_TABLE, y
   CMP CHR_BANK_BANK_TO_LOAD
   BEQ switch_bg_to_y
@@ -450,7 +416,7 @@ bankswitch_obj_chr_data:
 
 new_obj_bank:
   ; todo load the bank into 0000, 4000, or 6000
-  LDA INIDISP_STATE
+  LDA INIDISP_CACHE
   ORA #$80
   STA INIDISP
 
@@ -472,7 +438,7 @@ new_obj_bank:
 ;   jsl load_chr_table_to_vm
 
 ; : 
-  LDA INIDISP_STATE
+  LDA INIDISP_CACHE
   STA INIDISP
   PLA
   TAY
@@ -483,6 +449,7 @@ switch_to_y:
   ; so just update our obj definition to use that for sprites
   TYA
   LSR ; for updating obsel, we have to halve y.  
+  BRK
   STA OBSEL
   PLB
   RTL

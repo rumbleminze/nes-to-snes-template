@@ -18,7 +18,7 @@ nmi:
     PHY
     setAXY8
 
-    ; sometimes the NES doesn't RTI, so we're going to set defaults for when it does that here
+    ; sometimes the NES doesn't RTI, so if needed call this to set defaults for when it does that here
     ; jslb set_scrolling_hdma_defaults, $a0
     jslb store_current_hdma_values, $a0
     jslb dma_oam_table_long, $a0
@@ -33,7 +33,7 @@ nmi:
     PHA
     PLB
 
-    ; Example rest to Castlevania NMI at C052
+    ; Example reset to Castlevania NMI at C052
     LDA #$c0
     STA BANK_SWITCH_HB
     LDA #$52

@@ -80,7 +80,7 @@ palette_1_lookup:
 .byte $D7, $57 ; $3A nyi
 .byte $D6, $67 ; $3B light greenish blue
 .byte $B6, $7B ; $3C nyi
-.byte $00, $00 ; $3D nyi
+.byte $F7, $5E ; $3D grey
 .byte $00, $00 ; $3E Black
 .byte $00, $00 ; $3F Black
 

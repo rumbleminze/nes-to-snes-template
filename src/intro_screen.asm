@@ -204,6 +204,7 @@ do_intro:
 
     LDA #$0F
     STA INIDISP
+    STA INIDISP_CACHE
     LDX #$FF
 
 
@@ -223,6 +224,7 @@ do_intro:
     ORA #$8F
     STA INIDISP_STATE
     STA INIDISP
+    STA INIDISP_CACHE
 
     
 
@@ -241,6 +243,7 @@ check_for_sprite_swap:
     jsr load_intro_tilesets
     LDA #$0F
     STA INIDISP
+    STA INIDISP_CACHE
 :   rts
 check_for_msu:
     LDA JOYTRIGGER1
@@ -303,11 +306,13 @@ write_intro_sprites:
 load_intro_tilesets:
     lda #$01
     sta NMITIMEN
+    STA NMITIMEN_CACHE
     LDA VMAIN_STATE
     AND #$0F
     STA VMAIN
     LDA #$8F
     STA INIDISP
+    STA INIDISP_CACHE
     STA INIDISP_STATE
 
     ; load index 20 bank into both sets of tiles

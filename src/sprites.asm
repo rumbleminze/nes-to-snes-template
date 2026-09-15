@@ -1,7 +1,17 @@
 translate_8_by_16_sprites:
-  jsl disable_nmi_no_store
-  jsr totals_sprite_conversion
-  jsl enable_nmi
+  jslb disable_nmi_no_store, $a0
+
+  LDA curr_ppu_ctrl_value
+  AND #%00100000
+  BNE :+
+    ; 8x8 sprites
+    jsr translate_8by8only_nes_sprites_to_oam
+    bra :++
+  :
+    ; 8x16 sprites
+    jsr totals_sprite_conversion
+  :
+  jslb enable_nmi, $a0
   RTL
 
 
@@ -196,7 +206,7 @@ second_half_of_sprites:
   TAY
   BEQ :+
   JMP second_half_of_sprites
-: jsl enable_nmi
+: jslb enable_nmi, $a0
   RTL
 
 OAMNES_Y    = $200
@@ -311,6 +321,7 @@ Next:
     INY
     INY
     INY
+
     INX
     INX
     INX
@@ -402,7 +413,7 @@ sprite_loop:
   PLA
   STA SPRITE_LOOP_JUNK
   STZ SNES_OAM_TRANSLATE_NEEDED
-	rtl
+	rts
 
 dma_oam_table_long:
   JSR dma_oam_table

@@ -3,7 +3,9 @@
 ; Audio Tracks for <game>
 ; NES value - track
 
-.DEFINE NUM_TRACKS        $0F
+; Number of tracks.  We have to check if all the tracks are available for the game
+; so that if a track isn't present we can fall back to NES audio 
+.DEFINE NUM_TRACKS        $0A
 
 ; Read Flags
 .DEFINE MSU_STATUS      $2000
@@ -20,9 +22,9 @@
 .DEFINE NSF_STOP        #$00
 .DEFINE NSF_PAUSE       #$FF ; 
 .DEFINE NSF_RESUME      #$FF ; 
-.DEFINE NSF_MUTE        #$55
+.DEFINE NSF_MUTE        #$00 ; this can be different per game.  It's the value that the game sends to mute audio.
 
-.DEFINE FADE_RATE #$02
+.DEFINE FADE_RATE #$01 ; We sometimes want to kick off an MSU1 fade, this controls the rate the volume goes down
 
 fade_if_needed:
   LDA MSU_FADE_IN_PROGRESS
@@ -67,18 +69,18 @@ queue_fade_to_next_track:
 play_track_hijack:
 
     PHA
-    jsl msu_check
+    jslb msu_check, $b2
     CMP NSF_MUTE
-    BEQ :+
+    BEQ mute_nintendo_audio
     ; non-0 value returned from MSU-check, we're not playing MSU
     ; either it's not a music track or we don't have it.
     ; return the original value
     PLA
     rtl
 
-:   
+mute_nintendo_audio:   
 ;   00 returned from msu_check, mute nsf and return the mute value
-    PLA
+    PLA ; eat the original value
     LDA NSF_MUTE
     rtl
 
@@ -160,9 +162,6 @@ msu_check:
 
   PLA
   PHA
-      ; CMP NSF_STOP
-      ; BEQ stop_msu
-
       CMP NSF_PAUSE
       BEQ pause_msu
 
@@ -174,8 +173,7 @@ msu_check:
   BEQ fall_through
   
   TAY
-  LDA TRACKS_ENABLED, Y
-  BEQ fall_back_to_nsf
+
 
   PLA
   CMP CURRENT_NSF
@@ -188,12 +186,10 @@ msu_check:
   ; non-FF value means we have an MSU track
   BRA msu_available
 
-fall_back_to_nsf:
-  bra stop_msu
-
 stop_msu:
 ; is msu playing?  if not, just exit
     LDA MSU_PLAYING
+    STZ CURRENT_NSF
     BEQ fall_through
     STZ MSU_CONTROL
     STZ MSU_CURR_CTRL    
@@ -212,8 +208,6 @@ resume_msu:
     BEQ fall_through
     LDA MSU_TRACK_IDX
     TAY
-    LDA TRACKS_ENABLED, y
-    beq fall_through
     LDA msu_track_loops, Y
     STA MSU_CONTROL
     STA MSU_CURR_CTRL
@@ -326,8 +320,12 @@ msu_available:
   STA MSU_VOLUME
   RTL
 
+; ran at nmi to see if we should play MSU1
 msu_nmi_check:
 
+  ; some tracks need to transition based on a timer
+  ; this routine will decrement the timer if needed
+  ; no need to enable it unless you've set up timers for the tracks
   ; jsr decrement_timer_if_needed
   jsr fade_if_needed
   jsr check_msu_pause
@@ -480,7 +478,6 @@ decrement_timer_if_needed:
   PLA
   STA $00
   PLB
-: 
   rts
 
 ; example extra pause routine
@@ -499,11 +496,11 @@ pause_msu_for_stopwatch:
 check_msu_pause:
   LDA MSU_TEMP_MUTED
   BEQ :+
-    jsl pause_msu_only
+    jslb pause_msu_only, $b2
     DEC MSU_MUTE_TIMER
     BNE :+
     STZ MSU_TEMP_MUTED
-    jsl resume_msu_only
+    jslb resume_msu_only, $b2
   :
   RTS
 
@@ -511,31 +508,30 @@ check_msu_pause:
 ; this 0x100 byte lookup table maps the NSF track to the MSU-1 track
 ; MSU Index - NES value - track
 ; 
-; 00 - 27 - Prologue
-; 01 - 2A - Vampire Killier (Stage 1)
-; 02 - 2D - Stalker (Stage 2 & 4-2)
-; 03 - 30 - Wicked Child (Stage 3)
-; 04 - 39 - Walking the Edge (Stage 4)
-; 05 - 36 - Heart of Fire (Stage 5)
-; 06 - 33 - Out of Time (Stage 6)
-; 07 - 3C - Nothing to Lose (Stage 7)
-; 08 - 3F (but how?) - Poison Mind (Boss)
-; 09 - 42 - Black Night (Last Boss)
-; 0A - 4B - All Clear (no looping)
-; 0B - 45 - Voyager (Ending)
-; 0C - 48 - Stage Clear (no looping)
-; 0D - 51 - Game Over (no looping)
-; 0E - 4E - Lose Life (no looping)
-; 0F - ?? - Underground (menu theme)
-; 
+; here's an example from CV 2
+; 00 - 00 - unused, going to use 00 for menu
+; x1 - 55 - Message of Darkness (In game start menu/file load) FDS
+; x2 - 39 - The Silence of Daylight (Town, Day)
+; x3 - 3D - Bloody Tears (Woods, Day)
+; x4 - 41 - Monster Dance (Woods &  Town, Night)
+; x5 - 45 - Dwelling of Doom (Mansion)
+; x6 - 49 - Within These Castle Walls (Ruins of Castlevania)
+; x7 - 4D - Last Boss (Battle with Dracula)
+; x8 - 59 - A Requiem (Ending)
+; x9 - 51 - Game Over
+; xA - F0 - Used for intro cinematic - no NSF equivalent
+; 80 - MSU select screen
+; 81 - Batty's title
+; 82 - Rumble's title if I add one
+
 ; other soundtracks are 0x[12345]_
 msu_track_lookup:
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
-.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $00, $FF, $FF, $01, $FF, $FF, $02, $FF, $FF
-.byte $03, $FF, $FF, $06, $FF, $FF, $05, $FF, $FF, $04, $FF, $FF, $07, $FF, $FF, $08
-.byte $FF, $FF, $09, $FF, $FF, $0B, $FF, $FF, $0C, $FF, $FF, $0A, $FF, $FF, $0E, $FF
-.byte $FF, $0D, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $02, $FF, $FF, $FF, $03, $FF, $FF
+.byte $FF, $04, $FF, $FF, $FF, $05, $FF, $FF, $FF, $06, $FF, $FF, $FF, $07, $FF, $FF
+.byte $FF, $09, $FF, $FF, $FF, $01, $FF, $FF, $FF, $08, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
@@ -545,26 +541,26 @@ msu_track_lookup:
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 .byte $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
-.byte $0F, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
+.byte $0A, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF, $FF
 
 ; this 0x100 byte lookup table maps the NSF track to the if it loops ($03) or no ($01)
 msu_track_loops:
-.byte $01, $03, $03, $03, $03, $03, $03, $03, $01, $03, $01, $01, $01, $01, $01, $03
-.byte $01, $03, $03, $03, $03, $03, $03, $03, $01, $03, $01, $01, $01, $01, $01, $03
-.byte $01, $03, $03, $03, $03, $03, $03, $03, $01, $03, $01, $01, $01, $01, $01, $03
-.byte $01, $03, $03, $03, $03, $03, $03, $03, $01, $03, $01, $01, $01, $01, $01, $03
-.byte $01, $03, $03, $03, $03, $03, $03, $03, $01, $03, $01, $01, $01, $01, $01, $03
-.byte $01, $03, $03, $03, $03, $03, $03, $03, $01, $03, $01, $01, $01, $01, $01, $03
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-.byte $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
+.byte $03, $03, $03, $03, $03, $03, $03, $03, $01, $01, $01, $00, $00, $00, $00, $00
 
 ; this 0x100 byte lookup table maps the NSF track to the MSU-1 volume ($FF is max, $4F is half)
 msu_track_volume:
@@ -587,6 +583,7 @@ msu_track_volume:
 .byte $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F, $4F
 
 
+; some example timer options
 msu_track_e0_delay_options:
 .word $0100, $068B, $0f4a
 
@@ -595,22 +592,22 @@ track_timers:
 .addr no_timer            ; 
 .addr no_timer            ; 
 .addr no_timer            ; 
-.addr no_timer  ; 04 - Level Clear
+
 .addr no_timer            ; 
 .addr no_timer            ; 
 .addr no_timer            ; 
-.addr no_timer            ; 
-.addr no_timer            ; 
-.addr no_timer            ; 
-.addr no_timer            ; 
-.addr no_timer            ; 
-.addr no_timer            ; 
-.addr death_jingle            ; 
 .addr no_timer            ; 
 
 .addr no_timer            ; 
 .addr no_timer            ; 
-.addr no_timer     ; 
+.addr no_timer            ; 
+.addr no_timer            ; 
+
+.addr no_timer            ; 
+.addr no_timer            ; 
+.addr no_timer            ; 
+.addr no_timer            ; 
+
 
 no_timer:
 .word $0000               ; 
@@ -618,57 +615,3 @@ death_jingle:
 .word $0061, $0000        ; death jingld
 game_over_timer:
 .word $0100, $0000
-
-draw_msu_bg2:
-  ; use the intro tiles for bg2
-    LDA #$00
-    STA CHR_BANK_BANK_TO_LOAD
-    LDA #$04
-    STA CHR_BANK_TARGET_BANK
-    JSL load_chr_table_to_vm
-    jsr write_msu_pause_tiles
-
-    rtl
-
-
-write_msu_pause_tiles:
-    PHB
-    PHK
-    PLB
-    setXY16
-    LDY #$0000
-
-next_msu_pause_line:
-    ; get starting address
-    LDA msu_pause_tiles, Y
-    CMP #$FF
-    BEQ exit_msu_pause_write
-
-    PHA
-    INY    
-    LDA msu_pause_tiles, Y
-    STA VMADDH
-    PLA
-    STA VMADDL
-    INY
-    LDX #$20
-
-:   LDA msu_pause_tiles, Y
-    STA VMDATAH
-    INY
-    LDA msu_pause_tiles, Y
-    STA VMDATAL
-    INY
-    DEX
-    BEQ next_msu_pause_line
-    BRA :-
-
-exit_msu_pause_write:
-    setAXY8
-    PLB
-    RTS
-
-
-; these tiles are generated by ./utilities/generate_music_credits
-msu_pause_tiles:
-.incbin "src/pause-bg2.bin"

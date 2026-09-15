@@ -1,6 +1,3 @@
-
-
-
 TEMP_DATA                   = $7C
 
 .DEFINE SOUND_IO_BANK  $7E

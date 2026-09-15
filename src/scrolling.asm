@@ -11,6 +11,7 @@ infidelitys_scroll_handling:
   BRA :++
 : LDA #$81  ; assumes auto-poll joypad is tru
 : STA NMITIMEN
+  STA NMITIMEN_CACHE
   PLA        
   PHA 
   AND #$04
@@ -66,11 +67,12 @@ setup_hdma:
 
   LDA #1
   STA SCROLL_HDMA_START + 5
-  LDA curr_hoff_low  
+  LDA HOFS_LB ; curr_hoff_low  
   STA SCROLL_HDMA_START + 6
   LDA curr_ppu_ctrl_value
   AND #$01
   STA SCROLL_HDMA_START + 7
+
   LDX curr_voff_low
   LDA $A0A180,X
   STA SCROLL_HDMA_START + 8
@@ -182,7 +184,7 @@ nohud:
   LDA $A0A560,X
   STA SCROLL_HDMA_START + 13
 
-  LDA curr_hoff_low
+  LDA curr_hoff_low ; HOFS_LB ; curr_hoff_low
   STA SCROLL_HDMA_START + 1
   STA SCROLL_HDMA_START + 6
   STA SCROLL_HDMA_START + 11
@@ -245,7 +247,7 @@ simple_scrolling:
   STZ SCROLL_HDMA_START
   STZ SCROLL_HDMA_START + 1
   STZ SCROLL_HDMA_START + 2
-: RTL
+  RTL
 
 setup_pause_overlay_hdma:
 PHB

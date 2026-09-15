@@ -1,3 +1,5 @@
+  ; Used to play a movie via MSU1.  I need to go back and document how to make the movie as well as play it.
+  ; it is not straightforward.  Take a look at Double Dragon or Chip n' Dale if you want to see an example
   .segment "msu_video_player_0000"
 
   PHP

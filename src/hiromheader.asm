@@ -5,7 +5,7 @@
                 
 .segment "ROMSPEC"
 .byte $31   ; Map Mode: 3.58MHz HiROM
-.byte $01   ; Cartridge Type: ROM+SRAM only
+.byte $01   ; Cartridge Type
 .byte $0C   ; ROM Size
 .byte $00   ; RAM size
 .byte $01   ; Destination Code: USA

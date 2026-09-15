@@ -18,9 +18,9 @@ cd "$(dirname "$0")"
 
 # re-compile the spc code
 # can be commented out if you're not changing the spc 
-./resources/asar.exe src/spc/spc.asm src/spc/spc.bin
+# ./resources/asar.exe src/spc/spc.asm src/spc/spc.bin
 
-mkdir -p out
+mkdir -p out/buildarchive
 
 # we create the sfc file twice, so that we can grab the wrap and load it to a wram_routine.bin file
 ca65 ./src/main.asm -o ./out/main.o -g

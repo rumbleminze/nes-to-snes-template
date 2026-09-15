@@ -29,7 +29,11 @@ check_for_code_input:
 PHA
 readjoy:
     ; assumes auto-read joypad is on.
-
+    ; this stores joypad read input in it's own space which is somewhat redundant
+    ; likely the game is already reading these if you want to check for code input
+    ; during the NES game.  But if you want to check in the menu / intro this will read it.
+    ; if you want to do it in the game you should add the logic for the code in an augment input that is
+    ; done at the time the game reads input
     LDA JOY1H
     STA buttons
 
@@ -71,16 +75,8 @@ code_effect:
     : LDA RDNMI
     BEQ :-
 
-    AND #$80
-    STZ CGADD    
-    LDA #$00
-    STA CGDATA
-    STA CGDATA
-
-    LDA #$D6
-    STA CGDATA
-    LDA #$10
-    STA CGDATA
+    ; do anything else you want here
+    ; or read KONAMI_CODE_ENABLED and react to it
 
     INC KONAMI_CODE_ENABLED
     rts

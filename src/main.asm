@@ -7,40 +7,33 @@
 .include "vars.inc"
 .include "2a03_variables.inc"
 
-.if OLD_2A03 = 0
-    .include "wram_routines.asm"
-.else
-    .include "wram_routines_v0.asm"
-.endif
-
+.include "wram_routines.asm"
 .include "hiromheader.asm"  
 
 .segment "CODE"
 .include "resetvector.asm"
 
 .segment "EMPTY_SPACE"
+; .include "msu_select_popups.asm"
+.include "hires_tiles.asm"
 
 .include "bank-snes.asm"
 ; these would need to be created from the original ROM using 
 ; the /utilities/parseNesFileToBanks.go file
-.include "bank0.asm"
-.include "bank1.asm"
-.include "bank2.asm"
-.include "bank3.asm"
-.include "bank4.asm"
-.include "bank5.asm"
-.include "bank6.asm"
+; .include "bank0.asm"
+; .include "bank1.asm"
+; .include "bank2.asm"
+; .include "bank3.asm"
+; .include "bank4.asm"
+; .include "bank5.asm"
+; .include "bank6.asm"
+
+; if the game has CHROM we put the tiles here (usually)
+.include "chrom_banks.asm"
 
 ; these are tiles I use for intro/menu screens
 .include "chrom-basic-intro-tiles.asm"
 
 .include "msu.asm"
-; .include "chrom-tiles-msu-intro.asm"
-; .include "msu_video_player.asm"
-  .include "intro_screen.asm"
-
-.if OLD_2A03 = 0
-    .include "dpcm_audio.asm"
-.else 
-    .include "2a03_emulator_first_8000.asm"
-.endif
+.include "dpcm_audio.asm"
+.include "new_title.asm"

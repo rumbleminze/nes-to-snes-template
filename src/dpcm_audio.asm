@@ -73,7 +73,7 @@ spc_init_driver:
     phk
     plb
     jsr send_apu_data
-
+    setAXY8    
     plp
     plb
     ply
@@ -267,8 +267,8 @@ spc_init_dpcm:
 ; 3. location entry in the table (written twice)
 ; 4. the actual BRR data
 
-    ; lda #$16
-    ; jsr spc_upload_byte
+    lda #$5F
+    jsr spc_upload_byte
 
     ; lda #$18
     ; jsr spc_upload_byte
@@ -298,8 +298,8 @@ spc_init_dpcm:
     ldy #$4010  ;  Start an upload at $4010 aram
     jsr spc_begin_upload
 
-    ; lda #$10
-    ; jsr spc_upload_byte
+    lda #$01
+    jsr spc_upload_byte
     ; lda #$01
     ; jsr spc_upload_byte
     ; lda #$10
@@ -321,12 +321,12 @@ spc_init_dpcm:
     ldy #$4020  ;  Start an upload at $4020 aram
     jsr spc_begin_upload
 
-;     rep #$30    ; 16-bit load
-;     lda #dmc_lookup_start_pos
-;     sep #$20    ; 8-bit A
-;     jsr spc_upload_byte
-;     xba
-;     jsr spc_upload_byte
+    rep #$30    ; 16-bit load
+    lda #dmc_lookup_start_pos
+    sep #$20    ; 8-bit A
+    jsr spc_upload_byte
+    xba
+    jsr spc_upload_byte
 
 ;     rep #$30    ; 16-bit load
 ;     lda #dmc_lookup_start_pos
@@ -455,12 +455,12 @@ spc_init_dpcm:
     jsr spc_begin_upload
     ldx #$0000
 
-; :
-;     lda f:item_pickup,x
-;     jsr spc_upload_byte
-;     inx
-;     cpx #(item_pickup_end-item_pickup)
-;     bne :-
+:
+    lda f:got_hit,x
+    jsr spc_upload_byte
+    inx
+    cpx #(got_hit_end-got_hit)
+    bne :-
 
 ;     ldx #$0000
 
@@ -536,6 +536,7 @@ spc_init_dpcm:
 
     jsr reset_to_ipc_rom
 
+    setAXY8
     plp 
     plb
     ply
@@ -570,9 +571,9 @@ spc_driver_end:
 .SEGMENT "PRGB4"
 brr:
 
-; item_pickup:
-;  .incbin "sfx/16-item-pickup-11khz.brr"
-; item_pickup_end:
+got_hit:
+ .incbin "brrs/5F-gethit.brr"
+got_hit_end:
 
 ; whip_18_pickup:
 ;  .incbin "sfx/18-whip-pickup-16khz.brr"

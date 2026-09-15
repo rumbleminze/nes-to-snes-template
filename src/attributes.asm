@@ -1,6 +1,15 @@
-; ATTR_PARAM_HB - has HB of VM start
-; ATTR_PARAM_LB - has LB of VM start
-; ($00), Y has the data.
+; values will be of the form
+; VMADDL, VMADDH - upper left corner of attribute write
+; 0x10 bytes of data in this order:
+; 0 1 2 3
+; 4 5 6 7
+; 8 9 A B
+; C D E F
+ATTR_WORK_BYTE_0 = $D0
+ATTR_WORK_BYTE_1 = ATTR_WORK_BYTE_0 + 1
+ATTR_WORK_BYTE_2 = ATTR_WORK_BYTE_0 + 2
+ATTR_WORK_BYTE_3 = ATTR_WORK_BYTE_0 + 3
+
 
 ; this needs to be 2 bytes on the ZP that ideally isn't used.
 .define ZP_ADDR_USAGE $50
@@ -10,6 +19,7 @@
 check_and_copy_attribute_buffer_l:
   jsr check_and_copy_attribute_buffer
   rtl
+
 check_and_copy_attribute_buffer:
 
   LDA ATTRIBUTE_DMA
@@ -56,14 +66,19 @@ copy_single_prepped_attribute:
   STA ATTR_DMA_VMADDL
   BCC :+
   INC ATTR_DMA_VMADDH
-: LDA ATTR_DMA_VMADDH
+  LDA ATTR_DMA_VMADDH
+  CMP #$28
+  BNE :+
+      ; oob, we don't write this high, we're done.
+      bra oob_exit
+: LDA ATTR_DMA_VMADDH  
   STA VMADDH
   LDA ATTR_DMA_VMADDL
   STA VMADDL
 
   DEX  
   BNE :---
-
+oob_exit:
   LDY #$0F
   LDA #$00
 : STA ATTRIBUTE_DMA,Y
@@ -130,6 +145,8 @@ handle_full:
   BPL :-
   LDA #$FF
   STA ATTRIBUTE_DMA + 1
+  LDA VMAIN_STATE
+  STA VMAIN
   RTS
 
 copy_partial_prepped_attributes_to_vram:
@@ -204,6 +221,9 @@ convert_nes_attributes_and_immediately_dma_them:
   PHY
   PHA
 
+  LDA ATTR_NES_HAS_VALUES
+  BEQ :++
+
   lda ATTR_NES_VM_ADDR_HB
   CMP #$20
   BCC not_attributes
@@ -216,7 +236,7 @@ convert_nes_attributes_and_immediately_dma_them:
   LDA ATTR_NES_VM_COUNT
   CMP #$01
   BNE :+
-    jslb write_single_attribute, $a0
+    jsr buffer_single_attribute
     STZ ATTR_NES_HAS_VALUES
     bra :++
   :     
@@ -243,6 +263,15 @@ not_attributes:
   PLB
   rtl
 
+
+convert_attributes_l:
+  PHB
+  ; PHP
+  jsr check_and_copy_nes_attributes_to_buffer
+  ; PLP
+  PLB
+  rtl
+
 ; converts attributes stored at 9A0 - A07 to attribute cache
 check_and_copy_nes_attributes_to_buffer:
 
@@ -260,8 +289,17 @@ check_and_copy_nes_attributes_to_buffer:
   BEQ :++
     LDA ATTRIBUTE_DMA
     beq :+
+      LDA #$80
+      STA INIDISP      
       jsr copy_prepped_attributes_to_vram
+      LDA INIDISP_CACHE
+      STA INIDISP
+      
     :
+    LDA ATTR_NES_VM_COUNT
+    TAX
+    LDA #$00
+    STA ATTR_NES_VM_ATTR_START, X
     jsr convert_attributes_inf
   :
 
@@ -506,7 +544,6 @@ inc_attribute_hdma_store_to_x:
 disable_attribute_hdma:
   LDA #$FF
   STA ATTRIBUTE_DMA + 1
-  STA ATTRIBUTE2_DMA + 1
   RTS
 
 inf_9680:
@@ -646,7 +683,7 @@ zero_all_attributes:
   LDA VMAIN_STATE
   STA VMAIN
   rtl
-  
+
   zero_all_attributes_values:
   .byte $00, $00
 
@@ -834,3 +871,161 @@ starting_address_lookup:
 
 attribute_1_lookup:
 .byte $00, $04, $08, $0C
+
+
+buffer_single_attribute:
+
+INC NUM_WRITES
+LDY NEXT_WRITE_INDEX
+
+lda ATTR_NES_VM_ADDR_LB
+STA SINGLE_ATTRIBUTE_WRITES, Y
+lda ATTR_NES_VM_ADDR_HB
+STA SINGLE_ATTRIBUTE_WRITES+1, Y
+
+lda ATTR_NES_VM_ATTR_START
+PHA
+AND #$03
+ASL
+ASL
+STA SINGLE_ATTRIBUTE_WRITES + 2, Y
+
+PLA
+PHA
+AND #$0C
+STA SINGLE_ATTRIBUTE_WRITES + 3,Y
+
+PLA
+PHA
+AND #$30
+LSR
+LSR
+STA SINGLE_ATTRIBUTE_WRITES + 4, Y
+
+PLA
+AND #$C0
+LSR
+LSR
+LSR
+LSR
+STA SINGLE_ATTRIBUTE_WRITES + 5, Y
+
+TYA
+CLC
+ADC #$06
+STA NEXT_WRITE_INDEX
+BCC :+
+  ; we wrapped around, we need to convert them nowsies
+  jslb write_buffered_single_attributes, $a0
+:
+RTS
+
+write_buffered_single_attributes:
+
+
+LDA NUM_WRITES
+BNE :+
+  ; nothing to do
+  RTL
+:
+PHB
+PHK
+PLB
+LDA #$80
+STA VMAIN
+LDY #$0A ; first one is always at 10
+
+next_single_write:
+TYA
+CLC
+ADC #$06
+TAY
+
+LDA SINGLE_ATTRIBUTE_WRITES, Y ; LB
+SEC
+SBC #$C0
+ASL
+
+TAX
+LDA starting_address_lookup+1, X
+PHA
+
+
+LDA SINGLE_ATTRIBUTE_WRITES + 1, Y ; HB
+CMP #$23
+BEQ :+
+  PLA
+  CLC
+  ADC #$04
+  PHA
+:
+PLA
+
+STA VMADDH
+LDA starting_address_lookup, X
+STA VMADDL
+PHA
+
+
+LDA SINGLE_ATTRIBUTE_WRITES + 2, Y
+STA VMDATAH
+STA VMDATAH
+
+LDA SINGLE_ATTRIBUTE_WRITES + 3, Y
+STA VMDATAH
+STA VMDATAH
+
+PLA
+CLC
+ADC #$20
+PHA
+STA VMADDL
+
+LDA SINGLE_ATTRIBUTE_WRITES + 2, Y
+STA VMDATAH
+STA VMDATAH
+
+LDA SINGLE_ATTRIBUTE_WRITES + 3, Y
+STA VMDATAH
+STA VMDATAH
+
+PLA
+CLC
+ADC #$20
+PHA
+STA VMADDL
+
+LDA SINGLE_ATTRIBUTE_WRITES + 4, Y
+STA VMDATAH
+STA VMDATAH
+
+LDA SINGLE_ATTRIBUTE_WRITES + 5, Y
+STA VMDATAH
+STA VMDATAH
+
+PLA
+CLC
+ADC #$20
+STA VMADDL
+
+LDA SINGLE_ATTRIBUTE_WRITES + 4, Y
+STA VMDATAH
+STA VMDATAH
+
+LDA SINGLE_ATTRIBUTE_WRITES + 5, Y
+STA VMDATAH
+STA VMDATAH
+
+DEC NUM_WRITES
+BEQ :+
+  jmp next_single_write
+:
+LDA #$10
+STA NEXT_WRITE_INDEX
+STZ NUM_WRITES
+
+LDA VMAIN_STATE
+STA VMAIN
+
+PLB
+rtl

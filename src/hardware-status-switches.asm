@@ -194,7 +194,7 @@ set_ppu_control_to_0_and_store:
     RTL
 
 update_stored_ppu_mask_value_to_1E:
-  LDA #$11
+  LDA #$13
   STA TM_STATE
   LDA #$1E
   STA PPU_MASK_STATE
@@ -242,7 +242,7 @@ set_ppu_mask_to_accumulator:
     AND #$18
     CMP #$18
     BNE :+
-        LDA #$11
+        LDA #$13
         BRA :++++
 :   CMP #$10
     BNE :+
@@ -250,11 +250,22 @@ set_ppu_mask_to_accumulator:
         BRA :+++
 :   CMP #$08
     BNE :+
-        LDA #$01
+        LDA #$03
         BRA :++
 :   LDA #$00    
 :    
-    STA TM
+    STA TM   
+
+    PLA
+    PHA
+    AND #$06
+    BNE :+
+        jslb enable_hide_left_8_pixel_window, $a0
+        BRA :++
+:       jslb disable_hide_left_8_pixel_window, $a0
+:   
+    PLA
+    PHA
     beq :+
         
         LDA #$0F
@@ -303,7 +314,7 @@ update_values_for_ppu_mask:
     AND #$08
     CMP #$08
     BNE :+
-    LDA #$01
+    LDA #$03
     ORA TM_STATE
     STA TM_STATE
     : 

@@ -1,3 +1,49 @@
+; Palette related routines.  
+; allow for changing the palette during game via L and R
+adjust_palette_option:
+  LDA P1_SNES_BUTTONS_TRIGGER
+  CMP #$10
+  BNE :+
+    ; L, decrement
+    DEC OPTIONS_PALETTE
+    LDA OPTIONS_PALETTE
+    BPL :++
+    LDA #13
+    BRA :++    
+  :
+  ; R, increment
+  INC OPTIONS_PALETTE
+  LDA OPTIONS_PALETTE
+  CMP #14
+  BNE :+
+    LDA #$00
+  :
+  STA OPTIONS_PALETTE
+  STA OPTIONS_PALETTE_SAVE
+  RTS
+
+check_for_palette_change:
+  LDA P1_SNES_BUTTONS_TRIGGER
+  AND #$30
+  BEQ :+
+
+    STZ NMITIMEN
+
+    jsr wait_for_vblank
+    jsr adjust_palette_option
+
+    LDA #$80
+    STA VMAIN
+    jslb write_palette_data, $a0
+    LDA VMAIN_STATE
+    STA VMAIN
+    LDA RDNMI
+    LDA NMITIMEN_CACHE
+    STA NMITIMEN
+: 
+
+rtl
+
 check_for_palette_updates:
   PHA
   LDA PALETTE_NEEDS_UPDATING
@@ -29,90 +75,57 @@ write_palette_data:
   LDA palette_adddresses + 1, Y
   STA $01
 
-  LDX #$00
-  STZ CURR_PALETTE_ADDR
   STZ CGADD
-
+  STZ CURR_PALETTE_ADDR
+  STZ PALETTE_STARTING_OFFSET
+  LDX #$00
+  
   ; lookup our 2 byte color from palette_lookup, color * 2
   ; Our palettes are written by writing to CGDATA
   ; PALETTE_UPDATE_START contains the first byte of palette data to update.
 palette_entry:
 
   LDA PALETTE_UPDATE_START, X
+  CMP #$FF
+  BEQ done_updating_palettes
+  CPX #$20
+  BEQ done_updating_palettes
+  
   AND PALETTE_FILTER
   ASL A
   TAY
   LDA ($00), Y
+
   STA CGDATA
   INY
   LDA ($00), Y
   STA CGDATA
 
-  LDA PALETTE_UPDATE_START + 1, X
-  AND PALETTE_FILTER
-  ASL A
-  TAY 
-
-  LDA ($00), Y
-  STA CGDATA
-  INY
-  LDA ($00), Y
-  STA CGDATA
-
-  LDA PALETTE_UPDATE_START + 2, X
-  AND PALETTE_FILTER
-  ASL A
-  TAY 
-
-  LDA ($00), Y
-  STA CGDATA
-  INY
-  LDA ($00), Y
-  STA CGDATA
-
-  LDA PALETTE_UPDATE_START + 3, X
-  AND PALETTE_FILTER
-  ASL A
-  TAY 
-
-  LDA ($00), Y
-  STA CGDATA
-  INY
-  LDA ($00), Y
-  STA CGDATA
-
-  LDA CURR_PALETTE_ADDR
-  CLC
-  ADC #$10
-  STA CGADD
-  STA CURR_PALETTE_ADDR
-
   INX
-  INX
-  INX
-  INX
-  ; CPY #$10
-  ; BNE palette_entry
-
-  TXA
-  AND #$0F
-  CMP #$00
-  BNE skip_writing_four_empties
-
-  ; after 16 entries we write an empty set of palettes
-  CLC
-  LDA CURR_PALETTE_ADDR
-  ADC #$40
-  STA CGADD
-  STA CURR_PALETTE_ADDR 
-
-skip_writing_four_empties:
-  CPX #$20
-  BEQ :+
-  jmp palette_entry
+  INC PALETTE_STARTING_OFFSET
+  LDA PALETTE_STARTING_OFFSET
+  CMP #$10
+  BNE :+
+    ; starting on the 2nd row, skip 16 entries
+    CLC
+    LDA CURR_PALETTE_ADDR
+    ADC #$50
+    STA CGADD
+    STA CURR_PALETTE_ADDR 
+    BRA palette_entry
 :
-
-
+  AND #$03
+  BNE :+
+  ; after every 4 entries we need to move the CGADD down by 10
+    LDA CURR_PALETTE_ADDR
+    CLC
+    ADC #$10
+    STA CGADD
+    STA CURR_PALETTE_ADDR
+  :
+  bra palette_entry
+  
+done_updating_palettes:
   LDA ACTIVE_NES_BANK
   INC A
   ORA #$A0
@@ -174,7 +187,7 @@ write_default_palettes_jsl:
 
 write_default_palettes:
   STZ CGADD
-  sta CGADD
+  ; sta CGADD
   LDY #$00
 : LDA snes_sprite_palatte, y
   STA CGDATA
